@@ -1,0 +1,119 @@
+/* TAM Capital Research & Reporting Agent - Brand-Aligned UI */
+
+/* Hide Streamlit defaults */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* Main background */
+.stApp {
+    background-color: #F5F7FA;
+}
+
+/* Sidebar - TAM Deep Blue gradient */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #222F62 0%, #0E1A24 100%);
+    border-right: 1px solid #1A6DB6;
+}
+
+[data-testid="stSidebar"] * {
+    color: #E8EDF3 !important;
+}
+
+[data-testid="stSidebar"] p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: rgba(26, 109, 182, 0.3) !important;
+    margin: 1rem 0;
+}
+
+/* Sidebar buttons */
+[data-testid="stSidebar"] .stButton button {
+    background-color: rgba(26, 109, 182, 0.15) !important;
+    border: 1px solid rgba(26, 109, 182, 0.4) !important;
+    color: #FFFFFF !important;
+    border-radius: 8px !important;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease;
+}
+
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: rgba(26, 109, 182, 0.3) !important;
+    border-color: #1A6DB6 !important;
+}
+
+/* Chat messages */
+[data-testid="stChatMessage"] {
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border: 1px solid #E2E8F0;
+    background: white;
+}
+
+/* Headings */
+h1 {
+    color: #222F62 !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+}
+
+h2, h3 {
+    color: #222F62 !important;
+    font-weight: 600 !important;
+}
+
+/* Download buttons */
+.stDownloadButton button {
+    background: linear-gradient(135deg, #1A6DB6 0%, #155A96 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    box-shadow: 0 2px 8px rgba(26, 109, 182, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.stDownloadButton button:hover {
+    background: linear-gradient(135deg, #155A96 0%, #104880 100%) !important;
+    box-shadow: 0 4px 12px rgba(26, 109, 182, 0.4) !important;
+    transform: translateY(-1px);
+}
+
+/* Status expanders */
+.stStatus {
+    border-radius: 10px !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+/* Chat input */
+[data-testid="stChatInput"] textarea {
+    border-radius: 12px !important;
+    border: 2px solid #E2E8F0 !important;
+    padding: 12px 16px !important;
+    font-size: 0.95rem !important;
+}
+
+[data-testid="stChatInput"] textarea:focus {
+    border-color: #1A6DB6 !important;
+    box-shadow: 0 0 0 2px rgba(26, 109, 182, 0.15) !important;
+}
+
+/* Multiselect tags */
+[data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
+    background-color: #1A6DB6 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #F5F7FA; }
+::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
