@@ -383,9 +383,10 @@ def extract_ticker_from_message(message: str) -> tuple:
     return None, None
 
 
-def call_claude(prompt: str, retries: int = 3) -> str:
-    """Call Claude API with retry on rate limits."""
+def call_claude(prompt: str, retries: int = 5) -> str:
+    """Call Claude API with exponential backoff on rate limits and transient errors."""
     import time
+    import random
     client = anthropic.Anthropic(api_key=api_key)
     for attempt in range(retries):
         try:
@@ -395,9 +396,25 @@ def call_claude(prompt: str, retries: int = 3) -> str:
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text
-        except anthropic.RateLimitError:
+        except anthropic.RateLimitError as e:
             if attempt < retries - 1:
-                wait = 15 * (attempt + 1)  # 15s, 30s, 45s
+                # Exponential backoff with jitter: ~10s, ~20s, ~40s, ~80s
+                base_wait = min(10 * (2 ** attempt), 120)
+                wait = base_wait + random.uniform(0, base_wait * 0.3)
+                st.toast(f"Rate limited — retrying in {int(wait)}s (attempt {attempt + 2}/{retries})")
+                time.sleep(wait)
+            else:
+                raise
+        except anthropic.APIConnectionError:
+            if attempt < retries - 1:
+                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                time.sleep(wait)
+            else:
+                raise
+        except anthropic.APIStatusError as e:
+            if e.status_code in (500, 502, 503, 529) and attempt < retries - 1:
+                wait = 10 * (2 ** attempt) + random.uniform(0, 5)
+                st.toast(f"API error ({e.status_code}) — retrying in {int(wait)}s")
                 time.sleep(wait)
             else:
                 raise
@@ -459,6 +476,7 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
     # Step 4: Generate each section
     with st.status("Running multi-framework analysis...", expanded=True) as status:
         total = len(section_types)
+        failed_sections = []
         for i, section_type in enumerate(section_types):
             config = SECTION_CONFIG.get(section_type)
             if not config:
@@ -467,12 +485,20 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 import time as _t
                 if i > 0:
-                    _t.sleep(3)  # Space out API calls to avoid rate limits
+                    _t.sleep(5)  # Space out API calls to stay within rate limits
                 content = generate_section(section_type, market_data_str, news)
                 results["sections"][config["section_key"]] = content
-            except Exception as e:
-                st.warning(f"Error: {config['title']} - {str(e)}")
+            except anthropic.RateLimitError:
+                failed_sections.append(config['title'])
+                st.warning(f"⏳ {config['title']} skipped due to rate limiting — the report will continue without it.")
+                _t.sleep(15)  # Extra cooldown before next call
                 continue
+            except Exception as e:
+                failed_sections.append(config['title'])
+                st.warning(f"⚠️ {config['title']} failed: {str(e)}")
+                continue
+        if failed_sections:
+            st.warning(f"⚠️ {len(failed_sections)} section(s) skipped: {', '.join(failed_sections)}. Try generating again in a minute for a complete report.")
 
         # Executive summary
         if results["sections"]:
