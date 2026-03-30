@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from config import (
-    ANTHROPIC_API_KEY, MODEL, TAMS_LOGO, ASSETS_DIR, OUTPUT_DIR,
+    ANTHROPIC_API_KEY, MODEL, FALLBACK_MODEL, TAMS_LOGO, ASSETS_DIR, OUTPUT_DIR,
     resolve_ticker
 )
 from data.market_data import (
@@ -383,41 +383,42 @@ def extract_ticker_from_message(message: str) -> tuple:
     return None, None
 
 
-def call_claude(prompt: str, retries: int = 5) -> str:
-    """Call Claude API with exponential backoff on rate limits and transient errors."""
+def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str:
+    """Try a model with retries. Returns response text or raises on exhaustion."""
     import time
     import random
-    client = anthropic.Anthropic(api_key=api_key)
     for attempt in range(retries):
         try:
             response = client.messages.create(
-                model=MODEL,
+                model=model,
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text
-        except anthropic.RateLimitError as e:
+        except anthropic.RateLimitError:
             if attempt < retries - 1:
-                # Exponential backoff with jitter: ~10s, ~20s, ~40s, ~80s
-                base_wait = min(10 * (2 ** attempt), 120)
-                wait = base_wait + random.uniform(0, base_wait * 0.3)
-                st.toast(f"Rate limited — retrying in {int(wait)}s (attempt {attempt + 2}/{retries})")
-                time.sleep(wait)
-            else:
-                raise
-        except anthropic.APIConnectionError:
-            if attempt < retries - 1:
-                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                base_wait = min(15 * (2 ** attempt), 60)
+                wait = base_wait + random.uniform(0, 5)
+                st.toast(f"Rate limited on {model} — retrying in {int(wait)}s...")
                 time.sleep(wait)
             else:
                 raise
         except anthropic.APIStatusError as e:
             if e.status_code in (500, 502, 503, 529) and attempt < retries - 1:
-                wait = 10 * (2 ** attempt) + random.uniform(0, 5)
-                st.toast(f"API error ({e.status_code}) — retrying in {int(wait)}s")
-                time.sleep(wait)
+                time.sleep(10 * (attempt + 1))
             else:
                 raise
+    raise anthropic.RateLimitError("Retries exhausted")
+
+
+def call_claude(prompt: str) -> str:
+    """Call Claude API. Tries primary model, falls back to Haiku on rate limit."""
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        return _call_with_retries(client, MODEL, prompt)
+    except anthropic.RateLimitError:
+        st.toast(f"Switching to faster model to avoid rate limits...")
+        return _call_with_retries(client, FALLBACK_MODEL, prompt)
 
 
 def generate_section(section_type: str, market_data_str: str, news_str: str) -> str:
