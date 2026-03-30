@@ -383,15 +383,24 @@ def extract_ticker_from_message(message: str) -> tuple:
     return None, None
 
 
-def call_claude(prompt: str) -> str:
-    """Call Claude API."""
+def call_claude(prompt: str, retries: int = 3) -> str:
+    """Call Claude API with retry on rate limits."""
+    import time
     client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.content[0].text
+    for attempt in range(retries):
+        try:
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.content[0].text
+        except anthropic.RateLimitError:
+            if attempt < retries - 1:
+                wait = 15 * (attempt + 1)  # 15s, 30s, 45s
+                time.sleep(wait)
+            else:
+                raise
 
 
 def generate_section(section_type: str, market_data_str: str, news_str: str) -> str:
@@ -456,6 +465,9 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
                 continue
             st.write(f"[{i+1}/{total}] {config['title']}")
             try:
+                import time as _t
+                if i > 0:
+                    _t.sleep(3)  # Space out API calls to avoid rate limits
                 content = generate_section(section_type, market_data_str, news)
                 results["sections"][config["section_key"]] = content
             except Exception as e:
