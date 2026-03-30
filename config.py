@@ -15,8 +15,8 @@ def _get_secret(key, default=""):
         return os.getenv(key, default)
 
 ANTHROPIC_API_KEY = _get_secret("ANTHROPIC_API_KEY")
-MODEL = "claude-opus-4-20250514"
-FALLBACK_MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-20250514"
+FALLBACK_MODEL = "claude-haiku-4-5-20251001"
 
 # TAMS branding colors (from TAM Capital Brand Guidelines)
 TAMS_DEEP_BLUE = "#222F62"      # Primary
