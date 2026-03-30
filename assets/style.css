@@ -94,17 +94,35 @@ h2, h3 {
     border: 1px solid #E2E8F0 !important;
 }
 
-/* Chat input */
+/* Chat input - ensure visibility in both light and dark mode */
 [data-testid="stChatInput"] textarea {
     border-radius: 12px !important;
     border: 2px solid #E2E8F0 !important;
     padding: 12px 16px !important;
     font-size: 0.95rem !important;
+    background-color: #FFFFFF !important;
+    color: #222F62 !important;
+}
+
+[data-testid="stChatInput"] textarea::placeholder {
+    color: #94A3B8 !important;
 }
 
 [data-testid="stChatInput"] textarea:focus {
     border-color: #1A6DB6 !important;
     box-shadow: 0 0 0 2px rgba(26, 109, 182, 0.15) !important;
+}
+
+/* Force light mode for main content area */
+[data-testid="stAppViewContainer"] {
+    background-color: #F5F7FA !important;
+    color: #222F62 !important;
+}
+
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li,
+[data-testid="stChatMessage"] span {
+    color: #333333 !important;
 }
 
 /* Multiselect tags */
