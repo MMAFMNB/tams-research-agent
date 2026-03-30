@@ -18,8 +18,8 @@ output/
 report_history/
 watchlist_data/
 
-# Streamlit
-.streamlit/
+# Streamlit secrets (not config)
+.streamlit/secrets.toml
 
 # IDE
 .vscode/

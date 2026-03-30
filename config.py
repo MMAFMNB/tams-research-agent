@@ -1,11 +1,20 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env from the project directory (not CWD)
+# Load .env from the project directory (not CWD) — used for local dev
 _project_dir = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(_project_dir, ".env"), override=True)
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+# Support both .env (local) and Streamlit secrets (cloud deployment)
+def _get_secret(key, default=""):
+    """Read from Streamlit secrets first, then environment variables."""
+    try:
+        import streamlit as st
+        return st.secrets.get(key, os.getenv(key, default))
+    except Exception:
+        return os.getenv(key, default)
+
+ANTHROPIC_API_KEY = _get_secret("ANTHROPIC_API_KEY")
 MODEL = "claude-sonnet-4-20250514"
 
 # TAMS branding colors (from TAM Capital Brand Guidelines)
