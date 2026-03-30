@@ -62,14 +62,15 @@ if os.path.exists(css_path):
     with open(css_path) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# API key from .env or Streamlit secrets
-api_key = ANTHROPIC_API_KEY
-if not api_key:
-    # Try reading directly from Streamlit secrets as fallback
-    try:
-        api_key = st.secrets["ANTHROPIC_API_KEY"]
-    except Exception:
-        pass
+# API key: try Streamlit secrets first (cloud), then .env (local)
+try:
+    api_key = st.secrets["ANTHROPIC_API_KEY"]
+except Exception:
+    api_key = ANTHROPIC_API_KEY
+
+# Debug: show key status in sidebar (masked)
+_key_source = "secrets" if api_key and api_key.startswith("sk-ant") else "env" if api_key else "MISSING"
+_key_preview = f"{api_key[:12]}...{api_key[-4:]}" if api_key and len(api_key) > 16 else "not set"
 
 
 # --- Logo helper ---
@@ -340,12 +341,13 @@ with st.sidebar:
 
     # Footer
     st.markdown(
-        """
+        f"""
         <div style="position: fixed; bottom: 16px; left: 16px; right: 16px; max-width: 240px;">
             <hr style="border-color: rgba(46, 173, 109, 0.2); margin-bottom: 8px;" />
             <p style="font-size: 0.65rem; color: #5A6B7E !important; text-align: center; margin: 0;">
                 TAM Capital | CMA Regulated<br>
-                Confidential - Internal Use Only
+                Confidential - Internal Use Only<br>
+                <span style="font-size: 0.5rem; color: #3A4B5E;">Key: {_key_preview} ({_key_source})</span>
             </p>
         </div>
         """,
