@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tam-deep-blue: #222F62;
+  --tam-light-blue: #1A6DB6;
+  --tam-turquoise: #6CB9B6;
+  --tam-dark-carbon: #0E1A24;
+  --tam-soft-carbon: #B1B3B6;
+  --tam-gray: #4A4A4A;
+  --tam-light-bg: #E8F0F8;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  color: var(--tam-gray);
+  background: #F8FAFC;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--tam-soft-carbon);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tam-deep-blue);
+}
+
+[dir="rtl"] {
+  text-align: right;
+}
