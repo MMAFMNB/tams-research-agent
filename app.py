@@ -465,7 +465,7 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
         st.write("Retrieving dividend history...")
         dividends = fetch_dividend_history(ticker, collector=collector)
 
-        market_data_str = format_market_data_for_prompt(stock_data, technicals, hist)
+        market_data_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
         status.update(label=f"Market data collected ({len(collector)} sources tracked)", state="complete")
 
     # Step 2: Generate charts

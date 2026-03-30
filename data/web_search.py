@@ -13,20 +13,24 @@ def search_company_news(company_name: str, ticker: str = "",
                         collector: Optional[SourceCollector] = None) -> str:
     """Search for recent news about a company.
 
-    Args:
-        company_name: Company name to search
-        ticker: Stock ticker symbol
-        max_results: Max results per query
-        collector: Optional SourceCollector to register found sources
-
-    Returns:
-        Formatted string of news results
+    For Tadawul-listed stocks, includes Saudi-specific news sources.
     """
+    is_tadawul = ticker.endswith(".SR")
+    raw_ticker = ticker.replace(".SR", "") if is_tadawul else ticker
+
     queries = [
         f"{company_name} stock news 2026",
         f"{company_name} earnings analysis",
-        f"{company_name} {ticker} investor",
     ]
+
+    if is_tadawul:
+        queries.extend([
+            f"{company_name} Tadawul Saudi Exchange news",
+            f"{company_name} {raw_ticker} Argaam",
+            f"{company_name} Saudi Arabia financial results",
+        ])
+    else:
+        queries.append(f"{company_name} {ticker} investor")
 
     all_results = []
     seen_urls = set()
@@ -47,7 +51,7 @@ def search_company_news(company_name: str, ticker: str = "",
         return "No recent news found."
 
     lines = ["=== RECENT NEWS & ANALYSIS ===", ""]
-    for i, r in enumerate(all_results[:15], 1):
+    for i, r in enumerate(all_results[:20], 1):
         title = r.get("title", "N/A")
         body = r.get("body", "")[:200]
         source = r.get("href", "")
@@ -57,7 +61,6 @@ def search_company_news(company_name: str, ticker: str = "",
         lines.append(f"   Source: {source}")
         lines.append("")
 
-        # Register source
         if collector and source:
             collector.add(
                 source_type="news_article",
