@@ -62,8 +62,14 @@ if os.path.exists(css_path):
     with open(css_path) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# API key from .env (no UI input needed)
+# API key from .env or Streamlit secrets
 api_key = ANTHROPIC_API_KEY
+if not api_key:
+    # Try reading directly from Streamlit secrets as fallback
+    try:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        pass
 
 
 # --- Logo helper ---
@@ -486,7 +492,7 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 import time as _t
                 if i > 0:
-                    _t.sleep(5)  # Space out API calls to stay within rate limits
+                    _t.sleep(10)  # Space out API calls to stay within Opus rate limits
                 content = generate_section(section_type, market_data_str, news)
                 results["sections"][config["section_key"]] = content
             except anthropic.RateLimitError:
