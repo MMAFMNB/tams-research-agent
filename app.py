@@ -185,12 +185,17 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # --- Market Alerts ---
+    # --- Market Alerts (cached to avoid I/O on every rerun) ---
     watched = get_all_watched_tickers()
     if watched:
-        raw_alerts = get_all_alerts(watched)
-        if raw_alerts:
-            process_monitor_alerts(raw_alerts)  # Apply cooldown, save to history
+        import time as _time
+        _alert_cache = st.session_state.get("_alert_cache", {})
+        _cache_age = _time.time() - _alert_cache.get("ts", 0)
+        if _cache_age > 900:  # refresh every 15 minutes
+            raw_alerts = get_all_alerts(watched)
+            if raw_alerts:
+                process_monitor_alerts(raw_alerts)
+            st.session_state["_alert_cache"] = {"ts": _time.time()}
 
         unread = get_unread_count()
         recent = get_recent_alerts(limit=5)

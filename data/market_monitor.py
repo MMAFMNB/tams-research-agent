@@ -50,19 +50,8 @@ def _is_stale(timestamp_str: Optional[str]) -> bool:
         return True
 
 
-def check_ticker(ticker: str, force: bool = False) -> dict:
-    """Check a single ticker for significant movements.
-
-    Returns dict with price data and alerts.
-    Uses cache to avoid hammering Yahoo Finance.
-    """
-    cache = _load_cache()
-
-    # Return cached if fresh
-    cached = cache["tickers"].get(ticker)
-    if cached and not force and not _is_stale(cached.get("checked_at")):
-        return cached
-
+def _fetch_ticker_data(ticker: str) -> dict:
+    """Fetch fresh data for a single ticker from Yahoo Finance."""
     try:
         stock = yf.Ticker(ticker)
         info = stock.info or {}
@@ -73,7 +62,6 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
         avg_volume = info.get("averageVolume", 0)
         name = info.get("longName") or info.get("shortName", ticker)
 
-        # Calculate changes
         price_change = 0
         price_change_pct = 0
         if previous_close and previous_close > 0:
@@ -82,7 +70,6 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
 
         volume_ratio = (volume / avg_volume) if avg_volume > 0 else 0
 
-        # Build alerts
         alerts = []
         if abs(price_change_pct) >= PRICE_CHANGE_THRESHOLD:
             direction = "surged" if price_change_pct > 0 else "dropped"
@@ -99,7 +86,7 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
                 "message": f"{name} volume {volume_ratio:.1f}x above average",
             })
 
-        result = {
+        return {
             "ticker": ticker,
             "name": name,
             "current_price": current_price,
@@ -113,9 +100,8 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
             "checked_at": datetime.now().isoformat(),
             "error": None,
         }
-
     except Exception as e:
-        result = {
+        return {
             "ticker": ticker,
             "name": ticker,
             "current_price": 0,
@@ -130,7 +116,20 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
             "error": str(e),
         }
 
-    # Update cache
+
+def check_ticker(ticker: str, force: bool = False) -> dict:
+    """Check a single ticker for significant movements.
+
+    Returns dict with price data and alerts.
+    Uses cache to avoid hammering Yahoo Finance.
+    """
+    cache = _load_cache()
+
+    cached = cache["tickers"].get(ticker)
+    if cached and not force and not _is_stale(cached.get("checked_at")):
+        return cached
+
+    result = _fetch_ticker_data(ticker)
     cache["tickers"][ticker] = result
     cache["last_full_scan"] = datetime.now().isoformat()
     _save_cache(cache)
@@ -141,12 +140,30 @@ def check_ticker(ticker: str, force: bool = False) -> dict:
 def scan_watchlist(tickers: list, force: bool = False) -> list:
     """Scan a list of tickers and return results with alerts.
 
+    Loads cache once, checks all tickers, saves once (avoids N+1 I/O).
     Returns list of dicts sorted by alert severity (most urgent first).
     """
+    cache = _load_cache()
     results = []
+    cache_dirty = False
+
     for ticker in tickers:
-        result = check_ticker(ticker, force=force)
+        # Use cached result if fresh
+        cached = cache["tickers"].get(ticker)
+        if cached and not force and not _is_stale(cached.get("checked_at")):
+            results.append(cached)
+            continue
+
+        # Fetch fresh data
+        result = _fetch_ticker_data(ticker)
+        cache["tickers"][ticker] = result
+        cache_dirty = True
         results.append(result)
+
+    if cache_dirty:
+        cache["last_full_scan"] = datetime.now().isoformat()
+        _save_cache(cache)
+
 
     # Sort: items with alerts first, then by absolute price change
     results.sort(key=lambda r: (-len(r["alerts"]), -abs(r["price_change_pct"])))

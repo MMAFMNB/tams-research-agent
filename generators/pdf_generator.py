@@ -20,6 +20,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 from config import TAMS_LOGO, TAMS_FOOTER, ASSETS_DIR
+from templates.report_structure import (
+    SECTION_TITLES, SECTION_ORDER, CHART_MAP, report_filename,
+)
 
 # ---------- Brand colors ----------
 TAM_DEEP_BLUE = HexColor("#222F62")
@@ -184,14 +187,12 @@ def _create_styles():
 
 
 # ---------- RTL Detection ----------
+_RTL_PATTERN = re.compile(r'[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]')
+
+
 def _detect_rtl(text):
-    """Detect if text contains Arabic characters."""
-    for ch in text:
-        if '\u0600' <= ch <= '\u06FF' or '\u0750' <= ch <= '\u077F':
-            return True
-        if '\uFB50' <= ch <= '\uFDFF' or '\uFE70' <= ch <= '\uFEFF':
-            return True
-    return False
+    """Detect if text contains Arabic/Hebrew characters."""
+    return bool(_RTL_PATTERN.search(text))
 
 
 # ---------- Page callbacks ----------
@@ -404,6 +405,13 @@ def _markdown_to_flowables(content, styles, charts=None, chart_key=None,
     return flowables
 
 
+def _accent_line():
+    """Create a turquoise accent underline flowable."""
+    tbl = Table([[""]], colWidths=[1.5 * inch], rowHeights=[2])
+    tbl.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), TAM_TURQUOISE)]))
+    return tbl
+
+
 def _inline_bold(text):
     """Convert **bold** markdown to <b>bold</b> for ReportLab Paragraphs."""
     return re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
@@ -465,28 +473,10 @@ def _build_toc(sections, styles):
     elements.append(Paragraph("TABLE OF CONTENTS", styles["TAM_H1"]))
     elements.append(Spacer(1, 12))
 
-    section_titles = {
-        "executive_summary": "Executive Summary",
-        "fundamental_analysis": "Fundamental Analysis",
-        "dividend_analysis": "Dividend Income Analysis",
-        "earnings_analysis": "Earnings Analysis",
-        "risk_assessment": "Risk Assessment Framework",
-        "technical_analysis": "Technical Analysis Dashboard",
-        "sector_rotation": "Sector Rotation Strategy",
-        "news_impact": "News Impact Assessment",
-        "war_impact": "Geopolitical Risk Assessment",
-        "key_takeaways": "Key Takeaways & Investment Thesis",
-    }
-    section_order = [
-        "executive_summary", "fundamental_analysis", "dividend_analysis",
-        "earnings_analysis", "risk_assessment", "technical_analysis",
-        "sector_rotation", "news_impact", "war_impact", "key_takeaways",
-    ]
-
     num = 1
-    for key in section_order:
+    for key in SECTION_ORDER:
         if key in sections:
-            title = section_titles.get(key, key.replace("_", " ").title())
+            title = SECTION_TITLES.get(key, key.replace("_", " ").title())
             elements.append(Paragraph(
                 f'<font color="#1A6DB6"><b>{num:02d}</b></font>'
                 f'&nbsp;&nbsp;&nbsp;&nbsp;{title}',
@@ -515,11 +505,9 @@ def generate_pdf_report(stock_name: str, ticker: str, sections: dict,
     Returns:
         Path to generated PDF file
     """
-    _register_fonts()
     os.makedirs(output_dir, exist_ok=True)
 
-    safe_name = re.sub(r'[^\w\s-]', '', stock_name).strip().replace(" ", "_")
-    filename = f"{safe_name}_Investor_Report_TAM_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = report_filename(stock_name, "pdf")
     filepath = os.path.join(output_dir, filename)
 
     date_str = datetime.now().strftime("%B %d, %Y")
@@ -582,47 +570,18 @@ def generate_pdf_report(stock_name: str, ticker: str, sections: dict,
     # Table of Contents
     elements.extend(_build_toc(sections, styles))
 
-    # Section mappings
-    section_titles = {
-        "executive_summary": "Executive Summary",
-        "fundamental_analysis": "Fundamental Analysis",
-        "dividend_analysis": "Dividend Income Analysis",
-        "earnings_analysis": "Earnings Analysis",
-        "risk_assessment": "Risk Assessment Framework",
-        "technical_analysis": "Technical Analysis Dashboard",
-        "sector_rotation": "Sector Rotation Strategy",
-        "news_impact": "News Impact Assessment",
-        "war_impact": "Geopolitical Risk Assessment",
-        "key_takeaways": "Key Takeaways &amp; Investment Thesis",
-    }
-    section_order = [
-        "executive_summary", "fundamental_analysis", "dividend_analysis",
-        "earnings_analysis", "risk_assessment", "technical_analysis",
-        "sector_rotation", "news_impact", "war_impact", "key_takeaways",
-    ]
-    chart_map = {
-        "fundamental_analysis": "revenue_earnings",
-        "technical_analysis": "technical",
-        "dividend_analysis": "dividend",
-    }
-
     # Content sections
-    for section_key in section_order:
+    for section_key in SECTION_ORDER:
         if section_key not in sections:
             continue
 
-        title = section_titles.get(section_key, section_key.replace("_", " ").title())
+        title = SECTION_TITLES.get(section_key, section_key.replace("_", " ").title())
         content = sections[section_key]
 
         # Section heading
         elements.append(Paragraph(title.upper(), styles["TAM_H1"]))
 
-        # Accent underline
-        line_tbl = Table([[""]], colWidths=[1.5 * inch], rowHeights=[2])
-        line_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), TAM_TURQUOISE),
-        ]))
-        elements.append(line_tbl)
+        elements.append(_accent_line())
         elements.append(Spacer(1, 8))
 
         # Section body
@@ -632,7 +591,7 @@ def generate_pdf_report(stock_name: str, ticker: str, sections: dict,
 
         # Chart for this section
         if charts:
-            chart_key = chart_map.get(section_key)
+            chart_key = CHART_MAP.get(section_key)
             if chart_key:
                 chart_path = charts.get(chart_key, "")
                 if chart_path and os.path.exists(chart_path):
@@ -647,11 +606,7 @@ def generate_pdf_report(stock_name: str, ticker: str, sections: dict,
     # Sources & References
     if sources:
         elements.append(Paragraph("SOURCES &amp; REFERENCES", styles["TAM_H1"]))
-        line_tbl = Table([[""]], colWidths=[1.5 * inch], rowHeights=[2])
-        line_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), TAM_TURQUOISE),
-        ]))
-        elements.append(line_tbl)
+        elements.append(_accent_line())
         elements.append(Spacer(1, 8))
 
         if hasattr(sources, 'format_for_docx'):
@@ -683,11 +638,7 @@ def generate_pdf_report(stock_name: str, ticker: str, sections: dict,
 
     # Disclaimer
     elements.append(Paragraph("DISCLAIMER", styles["TAM_H1"]))
-    line_tbl = Table([[""]], colWidths=[1.5 * inch], rowHeights=[2])
-    line_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), TAM_TURQUOISE),
-    ]))
-    elements.append(line_tbl)
+    elements.append(_accent_line())
     elements.append(Spacer(1, 8))
 
     from prompts.report_compiler import DISCLAIMER_TEXT

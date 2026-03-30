@@ -52,8 +52,13 @@ def record_alert(ticker: str, alert_type: str, severity: str,
 
     Returns the alert dict if recorded, None if suppressed by cooldown.
     """
-    if is_on_cooldown(ticker, alert_type):
-        return None
+    # Load once, check cooldown and append in same pass
+    history = _load_history()
+    key = _cooldown_key(ticker, alert_type)
+    cutoff = (datetime.now() - timedelta(hours=COOLDOWN_HOURS)).isoformat()
+    for e in reversed(history):
+        if e.get("cooldown_key") == key and e["timestamp"] > cutoff:
+            return None
 
     entry = {
         "ticker": ticker,
@@ -63,10 +68,9 @@ def record_alert(ticker: str, alert_type: str, severity: str,
         "timestamp": datetime.now().isoformat(),
         "display_time": datetime.now().strftime("%b %d, %H:%M"),
         "is_read": False,
-        "cooldown_key": _cooldown_key(ticker, alert_type),
+        "cooldown_key": key,
     }
 
-    history = _load_history()
     history.append(entry)
     _save_history(history)
     return entry

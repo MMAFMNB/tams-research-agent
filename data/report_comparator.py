@@ -34,18 +34,7 @@ METRIC_PATTERNS = {
     "Price Target": r'[Pp]rice\s+[Tt]arget[:\s]*(?:SAR\s*)?([0-9,.]+)',
 }
 
-SECTION_TITLES = {
-    "executive_summary": "Executive Summary",
-    "fundamental_analysis": "Fundamental Analysis",
-    "dividend_analysis": "Dividend Income Analysis",
-    "earnings_analysis": "Earnings Analysis",
-    "risk_assessment": "Risk Assessment",
-    "technical_analysis": "Technical Analysis",
-    "sector_rotation": "Sector Rotation",
-    "news_impact": "News Impact",
-    "war_impact": "Geopolitical Risk",
-    "key_takeaways": "Key Takeaways",
-}
+from templates.report_structure import SECTION_TITLES
 
 
 def _parse_number(s: str) -> Optional[float]:

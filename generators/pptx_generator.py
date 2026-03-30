@@ -7,11 +7,12 @@ from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.oxml.ns import qn
 
-from config import (
-    TAMS_PPTX_TEMPLATE, TAMS_LOGO, TAMS_FOOTER,
-    TAMS_DEEP_BLUE, TAMS_LIGHT_BLUE,
+from config import TAMS_PPTX_TEMPLATE
+from templates.report_structure import (
+    SECTION_TITLES, SECTION_ORDER, CHART_MAP, report_filename,
 )
 
 # Brand colors as RGBColor objects
@@ -32,41 +33,12 @@ LAYOUT_TAM_BG = 3         # "Tam Background" - full branded background
 LAYOUT_EMPTY = 7          # "5_Custom Layout" - empty layout
 LAYOUT_BLANK_PAGE = 23    # "Balnk Page" - clean blank
 
-# Section display titles
-SECTION_TITLES = {
-    "executive_summary": "Executive Summary",
-    "fundamental_analysis": "Fundamental Analysis",
-    "dividend_analysis": "Dividend Income Analysis",
-    "earnings_analysis": "Earnings Analysis",
-    "risk_assessment": "Risk Assessment Framework",
-    "technical_analysis": "Technical Analysis Dashboard",
-    "sector_rotation": "Sector Rotation Strategy",
-    "news_impact": "News Impact Assessment",
-    "war_impact": "Geopolitical Risk Assessment",
-    "key_takeaways": "Key Takeaways & Investment Thesis",
-}
-
-SECTION_ORDER = [
-    "executive_summary", "fundamental_analysis", "dividend_analysis",
-    "earnings_analysis", "risk_assessment", "technical_analysis",
-    "sector_rotation", "news_impact", "war_impact", "key_takeaways",
-]
-
-CHART_MAP = {
-    "fundamental_analysis": "revenue_earnings",
-    "technical_analysis": "technical",
-    "dividend_analysis": "dividend",
-}
+_RTL_PATTERN = re.compile(r'[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]')
 
 
 def _detect_rtl(text):
     """Detect if text contains Arabic/Hebrew characters requiring RTL layout."""
-    for ch in text:
-        if '\u0600' <= ch <= '\u06FF' or '\u0750' <= ch <= '\u077F' or '\uFB50' <= ch <= '\uFDFF' or '\uFE70' <= ch <= '\uFEFF':
-            return True
-        if '\u0590' <= ch <= '\u05FF':
-            return True
-    return False
+    return bool(_RTL_PATTERN.search(text))
 
 
 def _set_paragraph_rtl(paragraph, is_rtl):
@@ -118,7 +90,7 @@ def _add_footer(slide, slide_number, date_str, total_slides=None):
 
     # Thin separator line
     line = slide.shapes.add_shape(
-        1,  # MSO_SHAPE.RECTANGLE
+        MSO_SHAPE.RECTANGLE,
         Inches(0.5), Inches(6.95),
         slide_width - Inches(1.0), Pt(1)
     )
@@ -622,8 +594,7 @@ def generate_pptx_report(stock_name: str, ticker: str, sections: dict,
     _add_disclaimer_slide(prs, date_str, current_slide)
 
     # Save
-    safe_name = re.sub(r'[^\w\s-]', '', stock_name).strip().replace(" ", "_")
-    filename = f"{safe_name}_Investor_Report_TAM_{datetime.now().strftime('%Y%m%d')}.pptx"
+    filename = report_filename(stock_name, "pptx")
     filepath = os.path.join(output_dir, filename)
     prs.save(filepath)
 
