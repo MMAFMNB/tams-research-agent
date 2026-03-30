@@ -68,9 +68,6 @@ try:
 except Exception:
     api_key = ANTHROPIC_API_KEY
 
-# Debug: show key status in sidebar (masked)
-_key_source = "secrets" if api_key and api_key.startswith("sk-ant") else "env" if api_key else "MISSING"
-_key_preview = f"{api_key[:12]}...{api_key[-4:]}" if api_key and len(api_key) > 16 else "not set"
 
 
 # --- Logo helper ---
@@ -341,13 +338,12 @@ with st.sidebar:
 
     # Footer
     st.markdown(
-        f"""
+        """
         <div style="position: fixed; bottom: 16px; left: 16px; right: 16px; max-width: 240px;">
             <hr style="border-color: rgba(46, 173, 109, 0.2); margin-bottom: 8px;" />
             <p style="font-size: 0.65rem; color: #5A6B7E !important; text-align: center; margin: 0;">
                 TAM Capital | CMA Regulated<br>
-                Confidential - Internal Use Only<br>
-                <span style="font-size: 0.5rem; color: #3A4B5E;">Key: {_key_preview} ({_key_source})</span>
+                Confidential - Internal Use Only
             </p>
         </div>
         """,
@@ -494,7 +490,7 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 import time as _t
                 if i > 0:
-                    _t.sleep(10)  # Space out API calls to stay within Opus rate limits
+                    _t.sleep(20)  # Space out API calls to stay within Opus rate limits
                 content = generate_section(section_type, market_data_str, news)
                 results["sections"][config["section_key"]] = content
             except anthropic.RateLimitError:
