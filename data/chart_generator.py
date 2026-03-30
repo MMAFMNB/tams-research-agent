@@ -22,7 +22,8 @@ ORANGE = "#FF9800"
 GREEN = TURQUOISE  # Chart accent
 
 plt.rcParams.update({
-    "font.family": "Arial",
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Arial", "DejaVu Sans", "Liberation Sans", "Helvetica"],
     "font.size": 10,
     "axes.titlesize": 12,
     "axes.titleweight": "bold",

@@ -909,7 +909,7 @@ if prompt:
                             if os.path.exists(path):
                                 with chart_cols[i % 2]:
                                     st.image(path, caption=name.replace("_", " ").title(),
-                                             use_container_width=True)
+                                             width="stretch")
 
                     # Download buttons
                     if results["files"]:

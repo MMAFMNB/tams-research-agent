@@ -1,6 +1,9 @@
 """Web search for recent news and events about a company."""
 
-from duckduckgo_search import DDGS
+try:
+    from ddgs import DDGS
+except ImportError:
+    from duckduckgo_search import DDGS
 from data.source_collector import SourceCollector
 from typing import Optional
 
