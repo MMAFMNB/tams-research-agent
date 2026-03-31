@@ -631,7 +631,7 @@ footer{{
   </div>
 
   <div class="hero-content">
-    <h1 class="hero-title">
+    <h1 class="hero-title" data-en="Invest Smarter.<br/>Research for <span class='hero-title-accent'>Saudi Markets</span>" data-ar="استثمر بذكاء.<br/>أبحاث <span class='hero-title-accent'>الأسواق السعودية</span>">
       Invest Smarter.
       <br/>
       Research for <span class="hero-title-accent">Saudi Markets</span>
@@ -780,7 +780,8 @@ let currentLang='en';
 function toggleLang(){{
   currentLang=currentLang==='en'?'ar':'en';
   document.querySelectorAll('[data-en][data-ar]').forEach(el=>{{
-    el.textContent=currentLang==='en'?el.getAttribute('data-en'):el.getAttribute('data-ar');
+    const val=currentLang==='en'?el.getAttribute('data-en'):el.getAttribute('data-ar');
+    if(val.includes('<')){{el.innerHTML=val;}}else{{el.textContent=val;}}
   }});
   document.documentElement.dir=currentLang==='ar'?'rtl':'ltr';
   document.documentElement.lang=currentLang;
