@@ -306,6 +306,11 @@ if "pending_prompt" not in st.session_state:
 if "show_landing" not in st.session_state:
     st.session_state.show_landing = True
 
+# Check if user clicked "enter" from the landing page CTA (via URL query param)
+if st.query_params.get("enter") == "true":
+    st.session_state.show_landing = False
+    st.query_params.clear()
+
 
 # ==========================================================
 # NAVIGATION PAGES

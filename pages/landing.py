@@ -644,7 +644,7 @@ footer{{
       <div class="avatar a1">MM</div>
       <div class="avatar a2">AS</div>
       <div class="avatar a3">KH</div>
-      <div class="avatar-text" data-en="Meet 10+ TAM analysts" data-ar="التقابل مع +10 محللين">Meet 10+ TAM analysts</div>
+      <div class="avatar-text" data-en="Built by TAM Capital" data-ar="من تطوير رأس مال TAM">Built by TAM Capital</div>
     </div>
   </div>
 
@@ -693,27 +693,8 @@ footer{{
   </div>
 </section>
 
-<!-- Stats Bar -->
-<section class="stats-section">
-  <div class="stats-container">
-    <div class="stat-item">
-      <div class="stat-number" data-counter="500">500+</div>
-      <div class="stat-label" data-en="Companies Tracked" data-ar="الشركات المتتبعة">Companies Tracked</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number" data-counter="50000">50K+</div>
-      <div class="stat-label" data-en="Active Investors" data-ar="المستثمرون النشطون">Active Investors</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number" data-counter="99.9">99.9%</div>
-      <div class="stat-label" data-en="Uptime SLA" data-ar="اتفاقية SLA">Uptime SLA</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number" data-counter="24">24/7</div>
-      <div class="stat-label" data-en="Support Available" data-ar="الدعم المتاح">Support Available</div>
-    </div>
-  </div>
-</section>
+<!-- Spacer between features and demo -->
+<div style="height:40px;"></div>
 
 <!-- Demo Section -->
 <section class="demo-section">
@@ -758,7 +739,7 @@ footer{{
 <!-- Final CTA -->
 <section class="cta-section">
   <h2 class="cta-title" data-en="Ready to Transform Your Investments?" data-ar="هل أنت مستعد لتحويل استثماراتك؟">Ready to Transform Your Investments?</h2>
-  <p class="cta-subtitle" data-en="Join thousands of investors using TAM Capital's research platform." data-ar="انضم إلى آلاف المستثمرين الذين يستخدمون منصة بحث رأس مال TAM.">Join thousands of investors using TAM Capital's research platform.</p>
+  <p class="cta-subtitle" data-en="AI-powered research built for the Saudi market." data-ar="أبحاث مدعومة بالذكاء الاصطناعي مصممة للسوق السعودي.">AI-powered research built for the Saudi market.</p>
   <button id="finalCta" data-en="Get Started Free" data-ar="ابدأ مجانا">Get Started Free</button>
 </section>
 
@@ -893,29 +874,7 @@ const observer=new IntersectionObserver(entries=>{{
 
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
-// ===== COUNTER ANIMATION =====
-document.querySelectorAll('[data-counter]').forEach(el=>{{
-  const finalText=el.textContent;
-  const target=parseFloat(el.getAttribute('data-counter'));
-  const isFloat=String(target).includes('.');
-  const duration=2000;
-  const startTime=Date.now();
-  function count(){{
-    const elapsed=Date.now()-startTime;
-    const progress=Math.min(elapsed/duration,1);
-    const eased=1-Math.pow(1-progress,3);
-    if(progress>=1){{el.textContent=finalText;return;}}
-    const current=isFloat?Math.round((target*eased)*10)/10:Math.floor(target*eased);
-    if(target>=1000){{el.textContent=current.toLocaleString()+finalText.replace(/[\\d,.]+/,'');}}
-    else if(isFloat){{el.textContent=current.toFixed(1)+finalText.replace(/[\\d.]+/,'');}}
-    else{{el.textContent=current+finalText.replace(/\\d+/,'');}}
-    requestAnimationFrame(count);
-  }}
-  const revealObs=new IntersectionObserver(entries=>{{
-    if(entries[0].isIntersecting){{count();revealObs.disconnect();}}
-  }},{{threshold:0.5}});
-  revealObs.observe(el);
-}});
+// (Counter animation removed — no fake stats)
 
 // ===== DEMO CHART ANIMATION =====
 function drawDemoChart(){{
@@ -965,13 +924,13 @@ function drawDemoChart(){{
 drawDemoChart();
 window.addEventListener('resize',drawDemoChart);
 
-// ===== CTA BUTTON MESSAGING =====
-document.getElementById('finalCta').addEventListener('click',()=>{{
-  window.parent.postMessage({{type:'streamlit:setComponentValue',value:true}},'*');
-}});
-document.getElementById('navEnterBtn').addEventListener('click',()=>{{
-  window.parent.postMessage({{type:'streamlit:setComponentValue',value:true}},'*');
-}});
+// ===== CTA BUTTON NAVIGATION =====
+function enterApp(){{
+  // Navigate the top-level window to add ?enter=true
+  window.top.location.href = window.top.location.pathname + '?enter=true';
+}}
+document.getElementById('finalCta').addEventListener('click', enterApp);
+document.getElementById('navEnterBtn').addEventListener('click', enterApp);
 </script>
 </body>
 </html>'''
@@ -979,16 +938,17 @@ document.getElementById('navEnterBtn').addEventListener('click',()=>{{
     # Render as iframe component for full control
     import urllib.parse
     encoded = urllib.parse.quote(html)
-    st.components.v1.html(html, height=4200, scrolling=True)
+    st.components.v1.html(html, height=3800, scrolling=True)
 
-    # Also add the Streamlit button as fallback (above the fold doesn't work with iframe messaging)
+    # Streamlit button below the iframe as reliable fallback
     st.markdown("")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button(
-            "🚀 Enter TAM Terminal",
+            "Enter Research Terminal",
             key="fallback_button",
             use_container_width=True,
             type="primary",
         ):
-            st.switch_page("pages/terminal.py")
+            st.session_state.show_landing = False
+            st.rerun()
