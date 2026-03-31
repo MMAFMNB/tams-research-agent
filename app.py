@@ -1586,10 +1586,11 @@ def _render_market_overview_empty_state():
     with mc1:
         delta_class = "positive" if tasi_change >= 0 else "negative"
         delta_sign = "+" if tasi_change >= 0 else ""
+        tasi_display = f"{tasi_price:,.0f}" if isinstance(tasi_price, (int, float)) else str(tasi_price)
         st.markdown(
             f'<div class="market-card">'
             f'<div class="market-card-label">TASI Index</div>'
-            f'<div class="market-card-value">{tasi_price:,.0f if isinstance(tasi_price, (int, float)) else tasi_price}</div>'
+            f'<div class="market-card-value">{tasi_display}</div>'
             f'<div class="market-card-delta {delta_class}">{delta_sign}{tasi_change:.2f}%</div>'
             f'</div>',
             unsafe_allow_html=True
