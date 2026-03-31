@@ -1,0 +1,775 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Fix PPTX Generation Quality",
+        "description": "Improve PowerPoint presentation generation to meet TAM Capital brand standards with proper slide layouts, charts, and consistent branding",
+        "details": "Update the PPTX generation module to:\n1. Implement TAM Capital brand colors (#primary, #secondary from Tailwind config)\n2. Add TAM letterhead/logo to title slide and headers\n3. Improve chart generation using python-pptx chart capabilities\n4. Create consistent slide layouts: Title, Section Header, Content, Chart, Table\n5. Implement proper text formatting with Arabic RTL support\n6. Add page numbers and date stamps\n\nPseudo-code:\n```python\nfrom pptx import Presentation\nfrom pptx.util import Inches, Pt\nfrom pptx.enum.text import PP_ALIGN\nfrom pptx.chart.data import ChartData\n\nclass TAMPresentationGenerator:\n    def __init__(self):\n        self.prs = Presentation('tam_template.pptx')  # Use TAM branded template\n        self.tam_colors = {\n            'primary': RGBColor(0, 51, 102),  # TAM blue\n            'secondary': RGBColor(255, 204, 0)  # TAM gold\n        }\n    \n    def add_title_slide(self, title, subtitle, date):\n        slide = self.prs.slides.add_slide(self.prs.slide_layouts[0])\n        # Add TAM logo\n        slide.shapes.add_picture('tam_logo.png', Inches(0.5), Inches(0.5))\n        # Set title with brand font\n        title_shape = slide.shapes.title\n        title_shape.text = title\n        title_shape.text_frame.paragraphs[0].font.color.rgb = self.tam_colors['primary']\n        \n    def add_financial_chart(self, data, chart_type='column'):\n        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])\n        chart_data = ChartData()\n        # Populate chart with financial metrics\n        # Apply TAM color scheme to chart\n```",
+        "testStrategy": "1. Generate test presentations for 3 Saudi tickers (ARAMCO, STC, SABIC)\n2. Verify TAM branding elements present on all slides\n3. Check chart readability and data accuracy\n4. Test Arabic text rendering and RTL layout\n5. Validate file size < 10MB for typical 15-slide deck\n6. Manual review by analyst for professional quality\n7. Automated tests for slide count, element presence, and color compliance",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up TAM Capital branding assets and template",
+            "description": "Create and organize TAM Capital branding assets including logo, color scheme, and base PowerPoint template",
+            "dependencies": [],
+            "details": "Extract TAM Capital brand colors from Tailwind config, obtain high-resolution TAM logo in PNG format, create a base PPTX template file with master slides containing TAM branding elements. Set up a resources folder to store tam_logo.png and tam_template.pptx files. Define color constants for primary (#003366) and secondary (#FFCC00) colors.",
+            "status": "done",
+            "testStrategy": "Verify logo file exists and is readable, check template file has correct master slides, validate color values match brand guidelines",
+            "updatedAt": "2026-03-30T11:28:34.245Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement TAMPresentationGenerator class with slide layouts",
+            "description": "Create the main presentation generator class with methods for different slide types including title, section header, content, chart, and table layouts",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement TAMPresentationGenerator class using python-pptx library. Create methods for add_title_slide(), add_section_header(), add_content_slide(), add_chart_slide(), and add_table_slide(). Each method should apply TAM branding colors and fonts. Implement proper text formatting with font sizes, alignment, and spacing according to TAM standards.",
+            "status": "done",
+            "testStrategy": "Unit test each slide creation method, verify correct layout selection, check branding elements are applied, test text formatting properties",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:37.539Z"
+          },
+          {
+            "id": 3,
+            "title": "Build financial chart generation with TAM styling",
+            "description": "Implement chart creation functionality using python-pptx chart capabilities with TAM color scheme and formatting",
+            "dependencies": [
+              2
+            ],
+            "details": "Create add_financial_chart() method supporting column, line, and pie charts. Use ChartData class to populate financial metrics. Apply TAM color scheme to chart elements including data series, gridlines, and labels. Implement proper number formatting for financial values. Add chart titles and legends with appropriate styling.",
+            "status": "done",
+            "testStrategy": "Test chart generation with sample financial data, verify TAM colors are applied correctly, check data accuracy in charts, validate chart readability",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:41.011Z"
+          },
+          {
+            "id": 4,
+            "title": "Add Arabic RTL support and bilingual text handling",
+            "description": "Implement proper Arabic right-to-left text support and bilingual content handling in presentations",
+            "dependencies": [
+              2
+            ],
+            "details": "Add methods for handling Arabic text with proper RTL alignment using PP_ALIGN settings. Implement bilingual slide layouts with English and Arabic content. Use python-bidi library for proper bidirectional text handling. Create helper functions for text direction detection and alignment adjustment. Ensure Arabic fonts are properly embedded.",
+            "status": "done",
+            "testStrategy": "Test Arabic text rendering on various slide types, verify RTL alignment, test mixed English-Arabic content, check font embedding",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:44.717Z"
+          },
+          {
+            "id": 5,
+            "title": "Implement footer elements and metadata",
+            "description": "Add page numbers, date stamps, and other footer elements to all slides maintaining TAM branding consistency",
+            "dependencies": [
+              2
+            ],
+            "details": "Create add_footer() method to add page numbers, current date, and TAM Capital copyright to slide footers. Implement automatic page numbering starting from slide 2. Add presentation metadata including author, company, and creation date. Position footer elements consistently across all slide layouts with proper margins and TAM brand colors.",
+            "status": "done",
+            "testStrategy": "Verify footer appears on all slides except title, check page numbering sequence, validate date format, test footer positioning across different layouts",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:47.827Z"
+          },
+          {
+            "id": 6,
+            "title": "Set up TAM Capital branding assets and template",
+            "description": "Create and configure TAM Capital branded PowerPoint template with logo, colors, and fonts",
+            "dependencies": [],
+            "details": "Create a base PowerPoint template file (tam_template.pptx) with TAM Capital branding elements. Extract brand colors from Tailwind config (#primary and #secondary), prepare TAM logo in appropriate formats (PNG with transparency), and set up master slides with consistent fonts (Arial/Helvetica for body, TAM-specific fonts for headers). Configure slide layouts for Title, Section Header, Content, Chart, and Table slides.",
+            "status": "done",
+            "testStrategy": "Verify template file exists and contains all required slide layouts. Check that TAM logo displays correctly with proper resolution. Validate color values match brand guidelines.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:34.360Z"
+          },
+          {
+            "id": 7,
+            "title": "Implement TAMPresentationGenerator base class",
+            "description": "Build the core presentation generator class with brand colors and template initialization",
+            "dependencies": [
+              6
+            ],
+            "details": "Create TAMPresentationGenerator class that loads the TAM template, initializes brand colors as RGBColor objects, and sets up base configuration. Implement methods for adding TAM letterhead/logo to slides, applying consistent formatting, and managing slide metadata. Include helper methods for color application and font management.",
+            "status": "done",
+            "testStrategy": "Unit test class initialization with template loading. Verify brand colors are correctly defined. Test that presentation object is properly created with TAM template.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:37.564Z"
+          },
+          {
+            "id": 8,
+            "title": "Create slide generation methods with Arabic RTL support",
+            "description": "Implement methods for generating different slide types with proper text formatting and RTL support",
+            "dependencies": [
+              7
+            ],
+            "details": "Develop methods for add_title_slide(), add_content_slide(), add_section_header(), and add_table_slide(). Each method should apply TAM branding consistently, handle Arabic text with RTL alignment using PP_ALIGN settings, and maintain proper spacing and margins. Implement text frame formatting with language detection for automatic RTL/LTR switching.",
+            "status": "done",
+            "testStrategy": "Test each slide type generation with sample Arabic and English content. Verify RTL alignment for Arabic text. Check that TAM branding appears consistently across all slide types.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:44.739Z"
+          },
+          {
+            "id": 9,
+            "title": "Implement financial chart generation with TAM styling",
+            "description": "Build chart creation functionality using python-pptx with TAM color scheme and proper data visualization",
+            "dependencies": [
+              7
+            ],
+            "details": "Create add_financial_chart() method supporting column, line, and pie charts. Use ChartData class to populate financial metrics, apply TAM primary and secondary colors to chart elements, and ensure proper axis formatting for financial data. Implement chart positioning and sizing for optimal readability. Add support for multi-series data with legend formatting.",
+            "status": "done",
+            "testStrategy": "Generate test charts with sample financial data from ARAMCO, STC, and SABIC. Verify TAM colors are applied correctly. Test different chart types and validate data accuracy in visual representation.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:41.043Z"
+          },
+          {
+            "id": 10,
+            "title": "Add metadata, page numbers, and final presentation assembly",
+            "description": "Implement page numbering, date stamps, and final presentation packaging with quality checks",
+            "dependencies": [
+              8,
+              9
+            ],
+            "details": "Add footer elements to all slides with page numbers (excluding title slide) and generation date stamps. Implement metadata properties for document tracking. Create save_presentation() method with file size optimization. Add quality checks for slide count, image resolution, and overall file size to ensure presentations stay under 10MB for typical 15-slide decks.",
+            "status": "done",
+            "testStrategy": "Generate complete test presentation and verify page numbers appear correctly. Check date stamps are properly formatted. Validate file size remains under 10MB limit. Test metadata properties are correctly set.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:28:47.852Z"
+          }
+        ],
+        "updatedAt": "2026-03-30T11:28:47.852Z"
+      },
+      {
+        "id": "2",
+        "title": "Fix PDF Generation Quality",
+        "description": "Enhance PDF report generation with improved formatting, typography, page layout, and TAM Capital letterhead integration",
+        "details": "Refactor PDF generation to use ReportLab or WeasyPrint for better control:\n1. Implement TAM letterhead on first page and headers\n2. Set up proper page margins and typography (Arial/Helvetica for body, TAM fonts for headers)\n3. Add page numbers, table of contents, and section bookmarks\n4. Implement proper table formatting for financial data\n5. Support bilingual content with Arabic RTL\n6. Add charts/graphs as vector graphics\n\nPseudo-code:\n```python\nfrom reportlab.lib.pagesizes import A4\nfrom reportlab.platypus import SimpleDocTemplate, Paragraph, Table, Image\nfrom reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle\nfrom reportlab.lib.units import inch\nfrom reportlab.pdfbase import pdfmetrics\nfrom reportlab.pdfbase.ttfonts import TTFont\n\nclass TAMPDFGenerator:\n    def __init__(self):\n        # Register Arabic fonts\n        pdfmetrics.registerFont(TTFont('Arabic', 'NotoSansArabic.ttf'))\n        self.doc = SimpleDocTemplate('report.pdf', pagesize=A4)\n        self.styles = self._create_tam_styles()\n        \n    def _create_tam_styles(self):\n        styles = getSampleStyleSheet()\n        # TAM header style\n        styles.add(ParagraphStyle(\n            name='TAMHeader',\n            fontName='Helvetica-Bold',\n            fontSize=16,\n            textColor=colors.HexColor('#003366'),  # TAM blue\n            spaceAfter=12\n        ))\n        return styles\n        \n    def add_letterhead(self, canvas, doc):\n        # Draw TAM logo and letterhead\n        canvas.drawImage('tam_letterhead.png', 0, 750, width=8.5*inch)\n        canvas.setFont('Helvetica', 9)\n        canvas.drawString(inch, 0.5*inch, f'Page {doc.page}')\n```",
+        "testStrategy": "1. Generate PDF reports for test tickers and verify formatting\n2. Check TAM letterhead appears correctly on all pages\n3. Validate table alignment and financial data presentation\n4. Test Arabic content rendering and bidirectional text\n5. Verify PDF/A compliance for archival\n6. Check file size optimization (< 5MB for 20-page report)\n7. Cross-browser PDF viewer compatibility testing",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up ReportLab infrastructure and TAM branding assets",
+            "description": "Install ReportLab, configure project structure, and prepare TAM Capital branding assets including letterhead, logo, fonts, and color schemes",
+            "dependencies": [],
+            "details": "Install reportlab and required dependencies. Create a dedicated pdf_generator module. Prepare TAM Capital assets: letterhead PNG/SVG, logo files, brand fonts (Arial/Helvetica + Arabic fonts like Noto Sans Arabic), and define brand colors (#003366 for TAM blue). Set up font registration for both Latin and Arabic scripts. Create base template configuration with A4 page size and proper margins.",
+            "status": "done",
+            "testStrategy": "Verify ReportLab installation and font registration. Test asset loading and validate TAM brand colors render correctly. Generate a simple test PDF with letterhead to confirm basic setup.",
+            "updatedAt": "2026-03-30T11:36:39.864Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement TAMPDFGenerator class with page templates and styles",
+            "description": "Create the core TAMPDFGenerator class with TAM-branded page templates, custom styles, and automatic letterhead/footer insertion on every page",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement TAMPDFGenerator class extending SimpleDocTemplate. Create custom ParagraphStyles for TAM headers, body text, and Arabic content. Implement add_letterhead() method to draw TAM letterhead on each page using canvas operations. Add page numbering and date stamps in footers. Create reusable page templates for first page (with full letterhead) and subsequent pages (with minimal header). Ensure proper margin settings for professional appearance.",
+            "status": "done",
+            "testStrategy": "Generate multi-page test PDFs and verify letterhead appears correctly on all pages. Check page numbers increment properly. Validate margins and spacing match TAM brand guidelines.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:36:39.886Z"
+          },
+          {
+            "id": 3,
+            "title": "Build financial data table formatting and chart embedding",
+            "description": "Implement sophisticated table formatting for financial data with TAM brand colors and add support for embedding charts as vector graphics",
+            "dependencies": [
+              2
+            ],
+            "details": "Create custom Table styles with TAM brand colors for headers and alternating rows. Implement financial number formatting (thousands separators, decimal places, currency symbols). Add table border styles matching TAM guidelines. Create methods to convert matplotlib/plotly charts to vector graphics (PDF format) and embed them maintaining quality. Implement responsive table layouts that adjust column widths based on content. Add support for multi-column layouts for side-by-side comparisons.",
+            "status": "done",
+            "testStrategy": "Generate tables with various financial data types (income statements, ratios, valuations). Verify number formatting and alignment. Test chart embedding at different sizes. Validate vector graphics maintain quality when zoomed.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:36:39.906Z"
+          },
+          {
+            "id": 4,
+            "title": "Implement Arabic RTL support and bilingual content handling",
+            "description": "Add comprehensive support for Arabic right-to-left text rendering and mixed bilingual content within the same document",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement BiDi (bidirectional) text support using python-bidi library. Create custom Paragraph flowables that handle RTL text direction. Implement language detection to automatically apply correct text direction. Create bilingual table cells that can display English and Arabic content side-by-side. Handle mixed-direction content in headers and footers. Ensure proper alignment for Arabic numerals and punctuation. Add support for Arabic-specific typography rules.",
+            "status": "done",
+            "testStrategy": "Generate reports with pure Arabic content, pure English content, and mixed bilingual content. Verify RTL rendering in paragraphs, tables, and headers. Test Arabic font rendering and ligatures. Validate number formatting in Arabic context.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:36:39.930Z"
+          },
+          {
+            "id": 5,
+            "title": "Create generate_pdf_report wrapper and integrate with existing system",
+            "description": "Build the generate_pdf_report function that maintains compatibility with existing app.py while using the new ReportLab generator, including fallback to docx2pdf",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Implement generate_pdf_report() function that accepts the same parameters as the current DOCX generator. Map DOCX content structure to ReportLab elements (sections to bookmarks, tables to formatted tables, etc.). Implement Table of Contents generation with clickable links to sections. Add PDF metadata (title, author, creation date, keywords). Implement error handling with fallback to convert_docx_to_pdf for compatibility. Add PDF/A compliance for long-term archival. Optimize file size while maintaining quality.",
+            "status": "done",
+            "testStrategy": "Test with existing report generation parameters to ensure compatibility. Compare output quality with current DOCX-to-PDF conversion. Verify TOC links work correctly. Test fallback mechanism when ReportLab fails. Validate PDF/A compliance using verification tools.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:36:39.953Z"
+          }
+        ],
+        "updatedAt": "2026-03-30T11:36:39.953Z"
+      },
+      {
+        "id": "3",
+        "title": "Complete Report Comparison Feature",
+        "description": "Finish implementing the side-by-side report comparison with comprehensive metrics tracking and change highlighting",
+        "details": "Complete the report comparison functionality:\n1. Implement diff algorithm for financial metrics (percentage and absolute changes)\n2. Create change tracking for text sections (executive summary, risks, outlook)\n3. Build visual indicators for improvements/deteriorations (green/red arrows)\n4. Add comparison summary dashboard\n5. Implement date range selector for historical comparisons\n\nPseudo-code:\n```python\nfrom typing import Dict, List, Tuple\nimport difflib\nfrom datetime import datetime\n\nclass ReportComparator:\n    def __init__(self, report1_id: int, report2_id: int):\n        self.report1 = self._load_report(report1_id)\n        self.report2 = self._load_report(report2_id)\n        \n    def compare_metrics(self) -> Dict[str, Dict]:\n        metrics_diff = {}\n        for metric in ['revenue', 'earnings', 'pe_ratio', 'market_cap']:\n            old_val = self.report1.get(metric, 0)\n            new_val = self.report2.get(metric, 0)\n            metrics_diff[metric] = {\n                'old': old_val,\n                'new': new_val,\n                'change': new_val - old_val,\n                'change_pct': ((new_val - old_val) / old_val * 100) if old_val else 0,\n                'direction': 'up' if new_val > old_val else 'down'\n            }\n        return metrics_diff\n        \n    def compare_text_sections(self) -> Dict[str, List[Tuple]]:\n        sections = ['executive_summary', 'risks', 'outlook']\n        text_diffs = {}\n        for section in sections:\n            old_text = self.report1.get(section, '').split('\\n')\n            new_text = self.report2.get(section, '').split('\\n')\n            diff = list(difflib.unified_diff(old_text, new_text))\n            text_diffs[section] = self._format_diff(diff)\n        return text_diffs\n```",
+        "testStrategy": "1. Create test reports with known differences in metrics\n2. Verify percentage and absolute change calculations\n3. Test text diff highlighting for Arabic and English content\n4. Validate UI rendering of comparison view\n5. Test with reports having missing metrics (null handling)\n6. Performance test with large reports (>50 metrics)\n7. Verify comparison link sharing functionality",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build JSON-based Report History Store",
+            "description": "Create a lightweight JSON file storage system to persist generated reports with metadata and full content for future comparison",
+            "dependencies": [],
+            "details": "Implement a ReportStore class that saves each generated report to a JSON file with timestamp, ticker symbol, and all report sections. Store files in a 'report_history' directory with naming convention: {ticker}_{timestamp}.json. Include methods for saving, loading, and listing historical reports.",
+            "status": "done",
+            "testStrategy": "Test file creation/reading, verify JSON structure integrity, test listing reports by ticker, validate timestamp formatting, test concurrent write handling",
+            "updatedAt": "2026-03-30T11:41:20.165Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement ReportComparator Class with Diff Algorithms",
+            "description": "Create the core comparison engine that calculates differences between financial metrics and text sections of two reports",
+            "dependencies": [
+              1
+            ],
+            "details": "Build ReportComparator class with compare_metrics() method for calculating absolute/percentage changes in financial data, and compare_text_sections() using difflib for executive summary, risks, and outlook sections. Include direction indicators and change categorization logic.",
+            "status": "done",
+            "testStrategy": "Unit test metric calculations with known values, verify percentage change edge cases (division by zero), test text diff accuracy, validate change direction logic",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:41:20.181Z"
+          },
+          {
+            "id": 3,
+            "title": "Create Streamlit Comparison UI in Sidebar",
+            "description": "Build the user interface in Streamlit sidebar for selecting two reports from history and triggering comparison",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add a 'Compare Reports' section to the sidebar with two dropdown selectors populated from report history. Include a 'Compare' button that loads selected reports and displays the comparison view. Show report metadata (date, ticker) in dropdowns for easy identification.",
+            "status": "done",
+            "testStrategy": "Test dropdown population from report history, verify report selection and loading, test UI state management, validate error handling for missing reports",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:41:20.198Z"
+          },
+          {
+            "id": 4,
+            "title": "Build Visual Comparison Display with Metrics and Text Diffs",
+            "description": "Implement the main comparison view showing side-by-side metrics with change indicators and highlighted text differences",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create a comparison display using Streamlit columns for side-by-side view. Show financial metrics with green/red arrows for up/down changes, percentage badges, and absolute values. For text sections, use st.markdown with HTML/CSS to highlight additions (green) and deletions (red) in diff view.",
+            "status": "done",
+            "testStrategy": "Visual testing of arrow indicators and color coding, verify metric formatting and alignment, test text diff highlighting, validate responsive layout",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:41:20.214Z"
+          },
+          {
+            "id": 5,
+            "title": "Add Comparison Summary Dashboard",
+            "description": "Create a summary dashboard at the top of comparison view showing key changes and overall report evolution",
+            "dependencies": [
+              4
+            ],
+            "details": "Build a summary section with metrics like 'Total Changes', 'Largest Metric Change', 'Risk Assessment Changes', and 'Outlook Sentiment Shift'. Use Streamlit metrics components with delta indicators. Include a brief narrative summary of major changes detected between reports.",
+            "status": "done",
+            "testStrategy": "Test summary calculation accuracy, verify delta indicators display correctly, test edge cases with no changes, validate narrative generation logic",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:41:20.231Z"
+          }
+        ],
+        "updatedAt": "2026-03-30T11:41:20.231Z"
+      },
+      {
+        "id": "4",
+        "title": "Build Report Versioning System",
+        "description": "Implement comprehensive version tracking for all generated reports with snapshot functionality per ticker",
+        "details": "Create versioning infrastructure:\n1. Extend database schema to support report versions\n2. Implement version numbering scheme (semantic or sequential)\n3. Create snapshot mechanism to preserve full report state\n4. Build version metadata tracking (created_by, created_at, change_summary)\n5. Implement version branching for draft vs published\n\nDatabase schema:\n```sql\n-- Add to existing schema\nALTER TABLE reports ADD COLUMN version_number INTEGER DEFAULT 1;\nALTER TABLE reports ADD COLUMN parent_version_id INTEGER REFERENCES reports(id);\nALTER TABLE reports ADD COLUMN version_status VARCHAR(20) DEFAULT 'draft';\nALTER TABLE reports ADD COLUMN change_summary TEXT;\n\nCREATE TABLE report_versions (\n    id SERIAL PRIMARY KEY,\n    report_id INTEGER REFERENCES reports(id),\n    version_number INTEGER NOT NULL,\n    created_at TIMESTAMP DEFAULT NOW(),\n    created_by INTEGER REFERENCES users(id),\n    snapshot_data JSONB NOT NULL,\n    change_summary TEXT,\n    UNIQUE(report_id, version_number)\n);\n```\n\nPython implementation:\n```python\nclass ReportVersionManager:\n    def create_version(self, report_id: int, user_id: int) -> int:\n        # Get current report\n        current = db.query(Report).filter_by(id=report_id).first()\n        \n        # Create snapshot\n        snapshot = {\n            'metrics': current.metrics,\n            'analysis': current.analysis,\n            'generated_at': current.generated_at.isoformat(),\n            'data_sources': [s.to_dict() for s in current.sources]\n        }\n        \n        # Increment version\n        new_version = current.version_number + 1\n        \n        # Create version record\n        version = ReportVersion(\n            report_id=report_id,\n            version_number=new_version,\n            created_by=user_id,\n            snapshot_data=snapshot,\n            change_summary=self._generate_change_summary(current)\n        )\n        db.session.add(version)\n        db.session.commit()\n        return version.id\n```",
+        "testStrategy": "1. Test version creation for new and existing reports\n2. Verify snapshot completeness (all report data preserved)\n3. Test version numbering sequence and uniqueness\n4. Validate parent-child version relationships\n5. Test concurrent version creation (race conditions)\n6. Verify version retrieval performance with 100+ versions\n7. Test rollback to previous version functionality",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extend JSON Report Store with Version Support",
+            "description": "Modify the existing report_store.py to support version numbers and version metadata for each ticker",
+            "dependencies": [],
+            "details": "Update data/report_store.py to: 1) Add version_number field to report JSON structure, 2) Create version index file per ticker (e.g., reports/ARAMCO_versions.json) tracking all versions with metadata, 3) Modify save_report() to auto-increment version numbers, 4) Add get_report_versions(ticker) method to retrieve version history",
+            "status": "done",
+            "testStrategy": "Test with multiple report saves for same ticker, verify version numbers increment correctly, test version index file creation and updates",
+            "updatedAt": "2026-03-30T11:43:57.988Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Change Summary Generation",
+            "description": "Create automatic change detection and summary generation by comparing report versions",
+            "dependencies": [
+              1
+            ],
+            "details": "Build change detection module that: 1) Compares two report versions section by section, 2) Identifies added/removed/modified sections, 3) Calculates metrics changes (percentages), 4) Generates human-readable change summary in both Arabic and English, 5) Stores summary in version metadata",
+            "status": "done",
+            "testStrategy": "Create test reports with known changes, verify change detection accuracy, test with missing sections, validate summary generation in both languages",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:43:58.004Z"
+          },
+          {
+            "id": 3,
+            "title": "Build Version History Sidebar Component",
+            "description": "Create Streamlit sidebar UI for browsing and selecting report versions",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement in app.py sidebar: 1) Version dropdown selector showing version number and date, 2) Display version metadata (created date, change summary), 3) Load selected version when clicked, 4) Show current vs previous version indicator, 5) Add 'View Changes' button to highlight differences",
+            "status": "done",
+            "testStrategy": "Test UI with reports having multiple versions, verify version loading, test empty state handling, validate change highlighting functionality",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:43:58.017Z"
+          },
+          {
+            "id": 4,
+            "title": "Integrate Versioning with Report Generation Flow",
+            "description": "Connect version system to existing report generation and ensure backward compatibility",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Update report generation workflow: 1) Check for existing reports before creating new version, 2) Preserve all previous versions when generating new report, 3) Update file naming to include version (e.g., ARAMCO_v3_2024-01-15.json), 4) Ensure old reports without versions still load correctly, 5) Add version info to generated PDFs/PPTX",
+            "status": "done",
+            "testStrategy": "Test full workflow from report generation to version browsing, verify backward compatibility with existing reports, test concurrent report generation",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-30T11:43:58.032Z"
+          }
+        ],
+        "updatedAt": "2026-03-30T11:43:58.032Z"
+      },
+      {
+        "id": "5",
+        "title": "Implement Version Diff Engine",
+        "description": "Build a sophisticated difference engine to compare report versions and highlight changes in valuation, outlook, risks, and financials",
+        "details": "Create comprehensive diff engine:\n1. Implement metric comparison with significance thresholds\n2. Build text diff algorithm for narrative sections\n3. Create change categorization (minor/major/critical)\n4. Generate human-readable change summaries\n5. Support bilingual diff output\n\nPseudo-code:\n```python\nfrom enum import Enum\nimport json\nfrom typing import List, Dict, Any\n\nclass ChangeType(Enum):\n    MINOR = 'minor'  # < 5% change\n    MODERATE = 'moderate'  # 5-15% change\n    MAJOR = 'major'  # > 15% change\n    CRITICAL = 'critical'  # Rating change, outlook change\n\nclass VersionDiffEngine:\n    def __init__(self, version1_id: int, version2_id: int):\n        self.v1 = self._load_version(version1_id)\n        self.v2 = self._load_version(version2_id)\n        self.changes = []\n        \n    def analyze_changes(self) -> Dict[str, Any]:\n        return {\n            'metric_changes': self._compare_metrics(),\n            'text_changes': self._compare_text(),\n            'rating_changes': self._compare_ratings(),\n            'summary': self._generate_summary(),\n            'change_score': self._calculate_change_score()\n        }\n        \n    def _compare_metrics(self) -> List[Dict]:\n        changes = []\n        metrics = ['revenue', 'ebitda', 'net_income', 'pe_ratio', 'pb_ratio']\n        \n        for metric in metrics:\n            old = self.v1['metrics'].get(metric)\n            new = self.v2['metrics'].get(metric)\n            \n            if old and new:\n                pct_change = ((new - old) / old) * 100\n                change_type = self._categorize_change(pct_change)\n                \n                changes.append({\n                    'metric': metric,\n                    'old_value': old,\n                    'new_value': new,\n                    'change_pct': pct_change,\n                    'change_type': change_type.value,\n                    'formatted': self._format_change(metric, old, new, pct_change)\n                })\n        return changes\n        \n    def _generate_summary(self) -> Dict[str, str]:\n        # Generate bilingual summary\n        en_summary = self._build_english_summary()\n        ar_summary = self._build_arabic_summary()\n        return {'en': en_summary, 'ar': ar_summary}\n```",
+        "testStrategy": "1. Test with reports having various change magnitudes\n2. Verify change categorization thresholds\n3. Test bilingual summary generation\n4. Validate handling of null/missing metrics\n5. Test performance with large reports (100+ metrics)\n6. Verify text diff accuracy for Arabic content\n7. Test edge cases (identical reports, completely different reports)",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:31:53.075Z"
+      },
+      {
+        "id": "6",
+        "title": "Build Analyst Watchlist Model",
+        "description": "Create database models and API endpoints for analysts to maintain personal watchlists of tickers with monitoring preferences",
+        "details": "Implement watchlist functionality:\n1. Create watchlist database schema\n2. Build CRUD API endpoints\n3. Implement watchlist limits and validation\n4. Add monitoring preferences per ticker\n5. Create watchlist sharing capabilities\n\nDatabase schema:\n```sql\nCREATE TABLE watchlists (\n    id SERIAL PRIMARY KEY,\n    user_id INTEGER REFERENCES users(id),\n    name VARCHAR(100) NOT NULL,\n    description TEXT,\n    is_default BOOLEAN DEFAULT FALSE,\n    created_at TIMESTAMP DEFAULT NOW(),\n    updated_at TIMESTAMP DEFAULT NOW()\n);\n\nCREATE TABLE watchlist_items (\n    id SERIAL PRIMARY KEY,\n    watchlist_id INTEGER REFERENCES watchlists(id) ON DELETE CASCADE,\n    ticker VARCHAR(20) NOT NULL,\n    added_at TIMESTAMP DEFAULT NOW(),\n    notes TEXT,\n    alert_settings JSONB DEFAULT '{}',\n    UNIQUE(watchlist_id, ticker)\n);\n\nCREATE TABLE watchlist_alerts (\n    id SERIAL PRIMARY KEY,\n    watchlist_item_id INTEGER REFERENCES watchlist_items(id),\n    alert_type VARCHAR(50) NOT NULL,\n    threshold_value DECIMAL,\n    comparison_operator VARCHAR(10),\n    is_active BOOLEAN DEFAULT TRUE,\n    last_triggered TIMESTAMP,\n    notification_channels JSONB DEFAULT '[\"in_app\"]'\n);\n```\n\nFastAPI implementation:\n```python\nfrom fastapi import APIRouter, Depends, HTTPException\nfrom sqlalchemy.orm import Session\nfrom typing import List\n\nrouter = APIRouter(prefix='/api/watchlists')\n\n@router.post('/')\nasync def create_watchlist(\n    name: str,\n    description: str = None,\n    user: User = Depends(get_current_user),\n    db: Session = Depends(get_db)\n):\n    # Check watchlist limit (e.g., 10 per user)\n    count = db.query(Watchlist).filter_by(user_id=user.id).count()\n    if count >= 10:\n        raise HTTPException(400, 'Watchlist limit reached')\n        \n    watchlist = Watchlist(\n        user_id=user.id,\n        name=name,\n        description=description,\n        is_default=(count == 0)\n    )\n    db.add(watchlist)\n    db.commit()\n    return watchlist\n\n@router.post('/{watchlist_id}/tickers')\nasync def add_ticker(\n    watchlist_id: int,\n    ticker: str,\n    alert_settings: dict = None,\n    user: User = Depends(get_current_user),\n    db: Session = Depends(get_db)\n):\n    # Validate ticker exists\n    if not validate_ticker(ticker):\n        raise HTTPException(400, 'Invalid ticker symbol')\n        \n    # Check ownership\n    watchlist = db.query(Watchlist).filter_by(\n        id=watchlist_id, \n        user_id=user.id\n    ).first()\n    if not watchlist:\n        raise HTTPException(404, 'Watchlist not found')\n        \n    item = WatchlistItem(\n        watchlist_id=watchlist_id,\n        ticker=ticker.upper(),\n        alert_settings=alert_settings or {}\n    )\n    db.add(item)\n    db.commit()\n    return item\n```",
+        "testStrategy": "1. Test CRUD operations for watchlists and items\n2. Verify watchlist limits enforcement\n3. Test ticker validation for Saudi/GCC markets\n4. Validate unique constraints (no duplicate tickers)\n5. Test alert settings JSON schema validation\n6. Verify user isolation (can't access others' watchlists)\n7. Test cascade deletion of watchlist items",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:29:29.370Z"
+      },
+      {
+        "id": "7",
+        "title": "Implement Market Monitoring Service",
+        "description": "Build background service to monitor watchlist tickers for significant changes including price movements, news, and earnings",
+        "details": "Create monitoring infrastructure:\n1. Build Celery task for periodic market checks\n2. Integrate with data sources (Yahoo Finance, news APIs)\n3. Implement change detection algorithms\n4. Create monitoring schedules (real-time vs batch)\n5. Build monitoring history tracking\n\nPseudo-code:\n```python\nfrom celery import Celery\nfrom datetime import datetime, timedelta\nimport yfinance as yf\nfrom typing import List, Dict\n\napp = Celery('market_monitor')\n\nclass MarketMonitor:\n    def __init__(self):\n        self.yahoo = yf.Ticker\n        self.news_api = NewsAPIClient()\n        \n    def check_price_movement(self, ticker: str, threshold: float) -> Dict:\n        stock = self.yahoo(ticker)\n        current = stock.info.get('currentPrice', 0)\n        previous = stock.info.get('previousClose', 0)\n        \n        if previous > 0:\n            change_pct = ((current - previous) / previous) * 100\n            if abs(change_pct) >= threshold:\n                return {\n                    'triggered': True,\n                    'ticker': ticker,\n                    'current_price': current,\n                    'previous_close': previous,\n                    'change_pct': change_pct,\n                    'timestamp': datetime.now()\n                }\n        return {'triggered': False}\n        \n    def check_news_events(self, ticker: str, keywords: List[str]) -> List[Dict]:\n        # Search for news with relevance scoring\n        news = self.news_api.search(\n            query=f'{ticker} {\" OR \".join(keywords)}',\n            from_date=(datetime.now() - timedelta(hours=24)),\n            language='en,ar'\n        )\n        \n        significant_news = []\n        for article in news:\n            relevance = self._calculate_relevance(article, ticker, keywords)\n            if relevance > 0.7:\n                significant_news.append({\n                    'title': article['title'],\n                    'url': article['url'],\n                    'published': article['publishedAt'],\n                    'relevance': relevance,\n                    'summary': article['description']\n                })\n        return significant_news\n\n@app.task\ndef monitor_watchlists():\n    \"\"\"Celery task to run every 15 minutes during market hours\"\"\"\n    monitor = MarketMonitor()\n    \n    # Get all active watchlist items with alerts\n    items = db.query(WatchlistItem).join(WatchlistAlert).filter(\n        WatchlistAlert.is_active == True\n    ).all()\n    \n    for item in items:\n        # Check each alert condition\n        for alert in item.alerts:\n            if alert.alert_type == 'price_change':\n                result = monitor.check_price_movement(\n                    item.ticker, \n                    alert.threshold_value\n                )\n                if result['triggered']:\n                    create_notification(item.user_id, alert, result)\n                    \n            elif alert.alert_type == 'news_event':\n                news = monitor.check_news_events(\n                    item.ticker,\n                    alert.keywords or ['earnings', 'merger', 'acquisition']\n                )\n                if news:\n                    create_notification(item.user_id, alert, {'news': news})\n\n# Schedule task\napp.conf.beat_schedule = {\n    'monitor-watchlists': {\n        'task': 'monitor_watchlists',\n        'schedule': crontab(minute='*/15', hour='6-16'),  # Saudi market hours\n    },\n}\n```",
+        "testStrategy": "1. Test price movement detection with mock data\n2. Verify news relevance scoring algorithm\n3. Test Celery task execution and scheduling\n4. Validate alert triggering logic for various conditions\n5. Test performance with 100+ monitored tickers\n6. Verify market hours scheduling (Tadawul hours)\n7. Test error handling for API failures",
+        "priority": "medium",
+        "dependencies": [
+          "6"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:33:54.166Z"
+      },
+      {
+        "id": "8",
+        "title": "Build Alert Engine and Notification System",
+        "description": "Create comprehensive alert triggering and notification delivery system with in-app alerts and email digests",
+        "details": "Implement alert infrastructure:\n1. Build alert triggering logic with cooldown periods\n2. Create notification queue and delivery system\n3. Implement in-app notification center\n4. Build email digest templates (HTML + plain text)\n5. Add notification preferences and unsubscribe\n\nPseudo-code:\n```python\nfrom enum import Enum\nfrom datetime import datetime, timedelta\nimport smtplib\nfrom email.mime.multipart import MIMEMultipart\nfrom email.mime.text import MIMEText\nfrom jinja2 import Template\n\nclass NotificationChannel(Enum):\n    IN_APP = 'in_app'\n    EMAIL = 'email'\n    SMS = 'sms'  # Future\n\nclass AlertEngine:\n    def __init__(self):\n        self.cooldown_period = timedelta(hours=4)  # Prevent spam\n        \n    def should_trigger(self, alert: WatchlistAlert, new_data: Dict) -> bool:\n        # Check cooldown\n        if alert.last_triggered:\n            if datetime.now() - alert.last_triggered < self.cooldown_period:\n                return False\n                \n        # Check condition\n        if alert.alert_type == 'price_change':\n            return self._check_price_condition(alert, new_data)\n        elif alert.alert_type == 'volume_spike':\n            return self._check_volume_condition(alert, new_data)\n        elif alert.alert_type == 'news_event':\n            return bool(new_data.get('news', []))\n            \n    def trigger_alert(self, user_id: int, alert: WatchlistAlert, data: Dict):\n        # Create notification record\n        notification = Notification(\n            user_id=user_id,\n            alert_id=alert.id,\n            title=self._generate_title(alert, data),\n            body=self._generate_body(alert, data),\n            data=data,\n            is_read=False,\n            created_at=datetime.now()\n        )\n        db.session.add(notification)\n        \n        # Update alert last triggered\n        alert.last_triggered = datetime.now()\n        \n        # Queue delivery\n        for channel in alert.notification_channels:\n            if channel == NotificationChannel.IN_APP.value:\n                # Real-time via WebSocket\n                send_websocket_notification(user_id, notification)\n            elif channel == NotificationChannel.EMAIL.value:\n                queue_email_notification.delay(notification.id)\n                \n        db.session.commit()\n\nclass EmailNotificationService:\n    def __init__(self):\n        self.smtp_config = get_smtp_config()\n        self.templates = {\n            'alert': Template(open('templates/alert_email.html').read()),\n            'digest': Template(open('templates/digest_email.html').read())\n        }\n        \n    def send_alert_email(self, notification: Notification):\n        user = notification.user\n        alert = notification.alert\n        \n        # Render bilingual email\n        html_content = self.templates['alert'].render(\n            user_name=user.name,\n            ticker=alert.watchlist_item.ticker,\n            alert_type=alert.alert_type,\n            data=notification.data,\n            timestamp=notification.created_at,\n            unsubscribe_url=f'/api/alerts/unsubscribe/{user.unsubscribe_token}'\n        )\n        \n        msg = MIMEMultipart('alternative')\n        msg['Subject'] = f'TAM Research Alert: {alert.watchlist_item.ticker}'\n        msg['From'] = 'alerts@tamcapital.com'\n        msg['To'] = user.email\n        \n        msg.attach(MIMEText(html_content, 'html'))\n        \n        # Send\n        with smtplib.SMTP(self.smtp_config['host'], self.smtp_config['port']) as server:\n            server.starttls()\n            server.login(self.smtp_config['user'], self.smtp_config['pass'])\n            server.send_message(msg)\n\n@app.task\ndef send_daily_digest():\n    \"\"\"Send daily email digest of all alerts\"\"\"\n    service = EmailNotificationService()\n    \n    # Get users with email notifications enabled\n    users = db.query(User).filter(\n        User.notification_preferences['email_digest'] == True\n    ).all()\n    \n    for user in users:\n        # Get yesterday's notifications\n        notifications = db.query(Notification).filter(\n            Notification.user_id == user.id,\n            Notification.created_at >= datetime.now() - timedelta(days=1)\n        ).all()\n        \n        if notifications:\n            service.send_digest_email(user, notifications)\n```",
+        "testStrategy": "1. Test alert triggering with various conditions\n2. Verify cooldown period enforcement\n3. Test notification delivery across channels\n4. Validate email template rendering (HTML/text)\n5. Test WebSocket real-time delivery\n6. Verify digest aggregation logic\n7. Test unsubscribe functionality\n8. Load test with 1000+ simultaneous alerts",
+        "priority": "medium",
+        "dependencies": [
+          "6",
+          "7"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:35:24.337Z"
+      },
+      {
+        "id": "9",
+        "title": "Create Report History and Change Summary UI",
+        "description": "Build frontend components for viewing report version history, comparing versions, and displaying change summaries",
+        "details": "Implement React/Next.js UI components:\n1. Report History Timeline component\n2. Version Comparison View with side-by-side layout\n3. Change Summary Dashboard\n4. Version selector dropdown\n5. Diff visualization with highlighting\n\nTypeScript/React implementation:\n```typescript\n// components/ReportHistory.tsx\nimport { useState, useEffect } from 'react';\nimport { Timeline, TimelineItem } from '@/components/ui/timeline';\nimport { formatDistanceToNow } from 'date-fns';\nimport { ar, enUS } from 'date-fns/locale';\n\ninterface ReportVersion {\n  id: number;\n  version_number: number;\n  created_at: string;\n  created_by: { name: string; avatar?: string };\n  change_summary: string;\n  metrics_summary: {\n    revenue_change: number;\n    earnings_change: number;\n    rating_change?: string;\n  };\n}\n\nexport function ReportHistory({ ticker }: { ticker: string }) {\n  const [versions, setVersions] = useState<ReportVersion[]>([]);\n  const [selectedVersions, setSelectedVersions] = useState<[number?, number?]>([]);\n  const { locale } = useLocale();\n  \n  useEffect(() => {\n    fetchReportVersions(ticker).then(setVersions);\n  }, [ticker]);\n  \n  const handleCompare = () => {\n    if (selectedVersions[0] && selectedVersions[1]) {\n      router.push(`/reports/compare?v1=${selectedVersions[0]}&v2=${selectedVersions[1]}`);\n    }\n  };\n  \n  return (\n    <div className=\"space-y-6\">\n      <div className=\"flex justify-between items-center\">\n        <h2 className=\"text-2xl font-bold\">\n          {locale === 'ar' ? '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631' : 'Report History'}\n        </h2>\n        <button\n          onClick={handleCompare}\n          disabled={selectedVersions.filter(Boolean).length !== 2}\n          className=\"btn-primary\"\n        >\n          {locale === 'ar' ? '\u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0646\u0633\u062e' : 'Compare Versions'}\n        </button>\n      </div>\n      \n      <Timeline>\n        {versions.map((version) => (\n          <TimelineItem\n            key={version.id}\n            active={selectedVersions.includes(version.id)}\n            onClick={() => toggleVersionSelection(version.id)}\n          >\n            <div className=\"flex items-start justify-between\">\n              <div>\n                <h3 className=\"font-semibold\">\n                  {locale === 'ar' ? `\u0627\u0644\u0646\u0633\u062e\u0629 ${version.version_number}` : `Version ${version.version_number}`}\n                </h3>\n                <p className=\"text-sm text-gray-600\">\n                  {formatDistanceToNow(new Date(version.created_at), {\n                    addSuffix: true,\n                    locale: locale === 'ar' ? ar : enUS\n                  })}\n                </p>\n                <p className=\"text-sm mt-1\">{version.change_summary}</p>\n              </div>\n              <MetricChangeBadges metrics={version.metrics_summary} />\n            </div>\n          </TimelineItem>\n        ))}\n      </Timeline>\n    </div>\n  );\n}\n\n// components/VersionComparison.tsx\nexport function VersionComparison({ v1Id, v2Id }: { v1Id: number; v2Id: number }) {\n  const [comparison, setComparison] = useState<ComparisonData>();\n  const [activeSection, setActiveSection] = useState('metrics');\n  \n  useEffect(() => {\n    fetchComparison(v1Id, v2Id).then(setComparison);\n  }, [v1Id, v2Id]);\n  \n  return (\n    <div className=\"grid grid-cols-2 gap-6\">\n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v1.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v1.metrics} \n          highlights={comparison?.changes.decreased}\n          highlightColor=\"red\"\n        />\n      </div>\n      \n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v2.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v2.metrics}\n          highlights={comparison?.changes.increased} \n          highlightColor=\"green\"\n        />\n      </div>\n      \n      <div className=\"col-span-2\">\n        <ChangeSummaryPanel changes={comparison?.changes} />\n      </div>\n    </div>\n  );\n}\n\n// components/ChangeSummaryPanel.tsx\nexport function ChangeSummaryPanel({ changes }: { changes: ChangeData }) {\n  const { locale } = useLocale();\n  \n  return (\n    <div className=\"bg-gray-50 rounded-lg p-6\">\n      <h3 className=\"text-lg font-semibold mb-4\">\n        {locale === 'ar' ? '\u0645\u0644\u062e\u0635 \u0627\u0644\u062a\u063a\u064a\u064a\u0631\u0627\u062a' : 'Change Summary'}\n      </h3>\n      \n      <div className=\"grid grid-cols-3 gap-4\">\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u062d\u0633\u064a\u0646\u0627\u062a' : 'Improvements'}\n          items={changes.improvements}\n          icon={<TrendingUpIcon className=\"text-green-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u0631\u0627\u062c\u0639\u0627\u062a' : 'Deteriorations'}\n          items={changes.deteriorations}\n          icon={<TrendingDownIcon className=\"text-red-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u063a\u064a\u064a\u0631\u0627\u062a \u0631\u0626\u064a\u0633\u064a\u0629' : 'Key Changes'}\n          items={changes.key_changes}\n          icon={<AlertCircleIcon className=\"text-blue-500\" />}\n        />\n      </div>\n    </div>\n  );\n}\n```",
+        "testStrategy": "1. Test timeline rendering with multiple versions\n2. Verify version selection logic (max 2)\n3. Test comparison view data loading\n4. Validate diff highlighting accuracy\n5. Test responsive layout on mobile/tablet\n6. Verify Arabic RTL layout\n7. Test loading states and error handling\n8. Performance test with 50+ versions",
+        "priority": "medium",
+        "dependencies": [
+          "4",
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:35:37.827Z"
+      },
+      {
+        "id": "10",
+        "title": "Implement End-to-End Testing Suite",
+        "description": "Create comprehensive test suite covering the complete research workflow from ticker input through all output formats",
+        "details": "Build automated test suite:\n1. Set up Pytest with fixtures for test data\n2. Create integration tests for full workflow\n3. Implement output validation tests\n4. Add performance benchmarks\n5. Create test documentation\n\nTest implementation:\n```python\n# tests/test_e2e_workflow.py\nimport pytest\nfrom fastapi.testclient import TestClient\nimport asyncio\nfrom pathlib import Path\nimport PyPDF2\nfrom docx import Document\nfrom pptx import Presentation\n\nclass TestResearchWorkflow:\n    @pytest.fixture\n    def test_tickers(self):\n        return ['2222.SR', '7010.SR', '2010.SR']  # ARAMCO, STC, SABIC\n        \n    @pytest.fixture\n    def authenticated_client(self, client: TestClient):\n        # Login and return client with auth headers\n        response = client.post('/api/auth/login', json={\n            'email': 'test@tamcapital.com',\n            'password': 'testpass123'\n        })\n        token = response.json()['access_token']\n        client.headers['Authorization'] = f'Bearer {token}'\n        return client\n        \n    @pytest.mark.asyncio\n    async def test_complete_research_generation(self, authenticated_client, test_tickers):\n        for ticker in test_tickers:\n            # 1. Start research chat\n            chat_response = authenticated_client.post('/api/chat/sessions', json={\n                'ticker': ticker,\n                'initial_message': f'Generate comprehensive research report for {ticker}'\n            })\n            assert chat_response.status_code == 201\n            session_id = chat_response.json()['id']\n            \n            # 2. Wait for analysis completion\n            max_wait = 120  # seconds\n            start_time = asyncio.get_event_loop().time()\n            \n            while asyncio.get_event_loop().time() - start_time < max_wait:\n                status_response = authenticated_client.get(f'/api/chat/sessions/{session_id}/status')\n                status = status_response.json()['status']\n                \n                if status == 'completed':\n                    break\n                elif status == 'failed':\n                    pytest.fail(f'Research generation failed for {ticker}')\n                    \n                await asyncio.sleep(5)\n            else:\n                pytest.fail(f'Research generation timed out for {ticker}')\n                \n            # 3. Get generated report\n            report_response = authenticated_client.get(f'/api/reports/session/{session_id}')\n            assert report_response.status_code == 200\n            report_id = report_response.json()['id']\n            \n            # 4. Test all output formats\n            for format in ['docx', 'pdf', 'pptx']:\n                export_response = authenticated_client.get(f'/api/reports/{report_id}/export/{format}')\n                assert export_response.status_code == 200\n                \n                # Save file for validation\n                output_path = Path(f'test_outputs/{ticker}_{report_id}.{format}')\n                output_path.parent.mkdir(exist_ok=True)\n                output_path.write_bytes(export_response.content)\n                \n                # Validate output\n                self._validate_output(output_path, format, ticker)\n                \n    def _validate_output(self, file_path: Path, format: str, ticker: str):\n        if format == 'docx':\n            doc = Document(file_path)\n            # Check TAM letterhead\n            assert any('TAM Capital' in p.text for p in doc.paragraphs[:5])\n            # Check ticker mentioned\n            assert any(ticker in p.text for p in doc.paragraphs)\n            # Check minimum length\n            assert len(doc.paragraphs) > 50\n            \n        elif format == 'pdf':\n            with open(file_path, 'rb') as f:\n                pdf = PyPDF2.PdfReader(f)\n                # Check page count\n                assert len(pdf.pages) >= 10\n                # Check text content\n                text = ''.join(page.extract_text() for page in pdf.pages)\n                assert 'TAM Capital' in text\n                assert ticker in text\n                \n        elif format == 'pptx':\n            prs = Presentation(file_path)\n            # Check slide count\n            assert len(prs.slides) >= 10\n            # Check title slide\n            title_slide = prs.slides[0]\n            assert any('TAM' in shape.text for shape in title_slide.shapes if hasattr(shape, 'text'))\n            # Check for charts\n            chart_count = sum(1 for slide in prs.slides \n                            for shape in slide.shapes \n                            if shape.has_chart)\n            assert chart_count >= 3\n            \n    @pytest.mark.benchmark\n    def test_generation_performance(self, authenticated_client, benchmark):\n        def generate_report():\n            response = authenticated_client.post('/api/chat/sessions', json={\n                'ticker': '2222.SR',\n                'initial_message': 'Generate report'\n            })\n            return response.json()\n            \n        result = benchmark(generate_report)\n        # Assert generation initiated within 2 seconds\n        assert benchmark.stats['mean'] < 2.0\n        \n    def test_arabic_content_generation(self, authenticated_client):\n        # Test bilingual output\n        response = authenticated_client.post('/api/reports/generate', json={\n            'ticker': '2222.SR',\n            'language': 'ar'\n        })\n        assert response.status_code in [200, 201]\n        \n        # Download Arabic PDF\n        report_id = response.json()['id']\n        pdf_response = authenticated_client.get(f'/api/reports/{report_id}/export/pdf')\n        \n        # Validate Arabic content\n        pdf_path = Path(f'test_outputs/arabic_test.pdf')\n        pdf_path.write_bytes(pdf_response.content)\n        \n        with open(pdf_path, 'rb') as f:\n            pdf = PyPDF2.PdfReader(f)\n            text = pdf.pages[0].extract_text()\n            # Check for Arabic characters\n            assert any('\\u0600' <= char <= '\\u06FF' for char in text)\n\n# tests/conftest.py\nimport pytest\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker\n\n@pytest.fixture(scope='session')\ndef test_db():\n    engine = create_engine('postgresql://test:test@localhost/tams_test')\n    # Run migrations\n    alembic_cfg = Config('alembic.ini')\n    command.upgrade(alembic_cfg, 'head')\n    \n    yield engine\n    \n    # Cleanup\n    command.downgrade(alembic_cfg, 'base')\n```",
+        "testStrategy": "1. Run full E2E test for 3 Saudi tickers\n2. Validate all output formats meet quality standards\n3. Test performance benchmarks (< 60s generation)\n4. Verify Arabic content in bilingual outputs\n5. Test error handling for invalid tickers\n6. Validate TAM branding in all outputs\n7. Create test report with screenshots\n8. Set up CI/CD pipeline integration",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2",
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-30T14:06:55.991Z"
+      },
+      {
+        "id": "11",
+        "title": "Set Up Supabase Project and Database Schema",
+        "description": "Initialize Supabase project, create all database tables (users, watchlists, watchlist_items, portfolio_positions, reports, alerts, alert_rules, research_notes, chat_sessions, user_activity, ai_sentiment_scores), configure indexes, and set up Row Level Security (RLS) policies for multi-tenant data isolation.",
+        "details": "Create Supabase project via dashboard or CLI. Define all tables per PRD Phase 2 schema. Add proper indexes on frequently queried columns (user_id, ticker, created_at). Configure RLS so each user can only access their own data. Set up Supabase Vault for API key storage. Create migration SQL files for version control.",
+        "testStrategy": "1. Verify all tables created with correct columns and types\n2. Test RLS policies: user A cannot see user B's data\n3. Test foreign key constraints\n4. Benchmark query performance on indexed columns\n5. Verify Supabase connection from Python client",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "12",
+        "title": "Build Data Access Layer (DAL) Module",
+        "description": "Create a supabase_client.py module that provides a clean Python API for all database operations, replacing all JSON file read/write operations across the codebase. Include connection pooling, error handling, and graceful fallback to JSON for local development.",
+        "details": "Create data/supabase_client.py with classes/functions for: UserDAO, WatchlistDAO, PortfolioDAO, ReportDAO, AlertDAO, ChatDAO, ActivityDAO, SentimentDAO. Each DAO mirrors the existing JSON operations but uses Supabase. Add connection management with supabase-py library. Implement retry logic and graceful degradation.",
+        "testStrategy": "1. Unit test each DAO method with mock Supabase client\n2. Integration test: write then read back data\n3. Test fallback to JSON when Supabase unavailable\n4. Test connection pooling under 15 concurrent users\n5. Verify zero data loss during migration",
+        "priority": "high",
+        "dependencies": [
+          "11"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "13",
+        "title": "Migrate Existing JSON Data to Supabase",
+        "description": "Write a migration script that reads all existing JSON data (watchlists, portfolio, reports, alerts) and inserts it into the corresponding Supabase tables. Include validation, rollback capability, and data integrity checks.",
+        "details": "Script reads from watchlist_data/*.json and report_history/*.json. Maps JSON structures to Supabase table schemas. Handles ID generation (UUID), date parsing, and JSONB field conversion. Provides dry-run mode to preview changes before committing. Logs all operations for audit.",
+        "testStrategy": "1. Run migration on test data, verify row counts match\n2. Spot-check 10 random records for data accuracy\n3. Test rollback: delete migrated data and re-run\n4. Verify report version chains preserved\n5. Test with empty JSON files (fresh install scenario)",
+        "priority": "high",
+        "dependencies": [
+          "11",
+          "12"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "14",
+        "title": "Update All App Modules to Use Supabase DAL",
+        "description": "Replace all JSON file operations in app.py, portfolio.py, watchlist.py, report_store.py, alert_engine.py, and market_monitor.py with calls to the new Supabase DAL. Ensure all existing features work identically with the new backend.",
+        "details": "Systematically update imports and function calls in each module. Replace get_positions() JSON reads with PortfolioDAO.get_positions(user_id). Replace watchlist.json reads with WatchlistDAO calls. Replace report_history JSON reads with ReportDAO calls. Update chat session storage. Test each page end-to-end after migration.",
+        "testStrategy": "1. Test each page (Dashboard, Research, Portfolio, Sectors, Compare, Watchlist)\n2. Verify all CRUD operations work: add/remove watchlist items, positions, etc.\n3. Test report generation and storage\n4. Test report versioning and comparison\n5. Run full regression: every feature must work as before",
+        "priority": "high",
+        "dependencies": [
+          "12",
+          "13"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "15",
+        "title": "Implement Supabase Auth and Login Page",
+        "description": "Integrate Supabase Auth for user authentication with email/password login, magic link option, session management, and a TAM Liquid Glass styled login page. Include invite-only registration flow where admins send invite links.",
+        "details": "Use supabase-py auth module. Create a login page component that renders before any app content using st.session_state for auth gating. Style with TAM Liquid Glass theme (glass cards, floating orbs background, TAM logo). Implement: login, logout, password reset, magic link, session persistence ('remember me'). Store user profile in session state after login. Create invite flow: admin generates invite link with pre-assigned role.",
+        "testStrategy": "1. Test email/password login flow end-to-end\n2. Test magic link delivery and authentication\n3. Test session persistence across page reloads\n4. Test password reset flow\n5. Test invalid credentials handling\n6. Test invite-only registration\n7. Verify login page renders correctly with TAM theme",
+        "priority": "high",
+        "dependencies": [
+          "11"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "16",
+        "title": "Implement Role-Based Access Control (RBAC)",
+        "description": "Build RBAC middleware that enforces permissions based on user role (super_admin, admin, analyst, viewer). Gate features, pages, and actions based on role. Viewer gets read-only access, analyst gets full research capabilities, admin adds user management.",
+        "details": "Create auth/rbac.py module with role checking decorators/functions. Define permission matrix: super_admin (all), admin (user mgmt + analyst features), analyst (research + portfolio + watchlist + alerts + export), viewer (read-only dashboards + published reports). Apply role checks in app.py before rendering each page. Show/hide UI elements based on role. Enforce at DAL level too (belt and suspenders).",
+        "testStrategy": "1. Test each role can access permitted features\n2. Test each role is blocked from forbidden features\n3. Test viewer cannot generate reports or modify data\n4. Test admin can manage users but not system config\n5. Test super_admin has full access\n6. Test role enforcement at both UI and DAL levels",
+        "priority": "high",
+        "dependencies": [
+          "15"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "17",
+        "title": "Build Admin Panel Page",
+        "description": "Create a new Admin page accessible only to admin/super_admin roles. Includes user management (invite, edit role, deactivate), usage dashboard (reports per user, API consumption, top tickers), system configuration (API keys, model selection), and audit log viewer.",
+        "details": "New render_admin() function in app.py. Tabs: Users, Usage, Config, Audit Log. Users tab: table of all users with role dropdown, status toggle, invite button. Usage tab: bar charts of reports/user, line chart of daily API calls, top 10 researched tickers. Config tab: API key management (masked display), default model selector, alert threshold settings. Audit log: filterable table with user, action, timestamp, details. All styled with TAM Liquid Glass theme.",
+        "testStrategy": "1. Test admin can invite new user\n2. Test admin can change user roles\n3. Test admin can deactivate account\n4. Test usage stats display correctly\n5. Test non-admin users cannot access this page\n6. Test audit log filtering by user, action, date",
+        "priority": "high",
+        "dependencies": [
+          "15",
+          "16"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "18",
+        "title": "Build Interactive Plotly Technical Charts",
+        "description": "Replace static Matplotlib charts with interactive Plotly charts featuring candlestick views, technical indicator overlays (MA, Bollinger, RSI, MACD, Fibonacci), time range selectors, dark theme matching TAM Liquid Glass, and comparison mode for overlaying multiple tickers.",
+        "details": "Create data/interactive_charts.py module. Build functions: generate_candlestick_chart(), generate_technical_chart(), generate_comparison_chart(). Use plotly.graph_objects for candlestick + volume overlay. Add toggleable indicator overlays via Streamlit checkboxes. Support time ranges: 1W, 1M, 3M, 6M, 1Y, 5Y, MAX. Apply TAM dark theme (transparent bg, TAM accent colors). Use st.plotly_chart() with use_container_width=True. Embed in Research, Portfolio, Compare pages.",
+        "testStrategy": "1. Test candlestick chart renders for Saudi tickers\n2. Test each indicator overlay toggles correctly\n3. Test time range selector changes data window\n4. Test comparison mode with 2-3 tickers\n5. Test chart responsiveness on different screen sizes\n6. Verify dark theme colors match TAM Liquid Glass\n7. Test zoom, pan, and crosshair interactions",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "19",
+        "title": "Build Custom Alert Rules Builder UI",
+        "description": "Create an interface for users to define custom alert rules per ticker: price targets (above/below), percentage change thresholds, volume spikes, news keyword triggers, and technical signal triggers (RSI/MACD crossovers). Rules stored in Supabase with active/inactive toggles.",
+        "details": "Add alert rules section to Watchlist page and as a standalone Alert Rules page. UI: glass card per rule with ticker selector, rule type dropdown, parameter inputs (threshold, keywords), notification preference (in-app/email/both), active toggle. CRUD operations via AlertRuleDAO. Background checker scans rules against live data. Link to existing alert_engine.py for alert generation. Show rule status: last triggered, times triggered.",
+        "testStrategy": "1. Test creating each rule type (price, volume, news, technical)\n2. Test editing existing rules\n3. Test activating/deactivating rules\n4. Test rule triggers correctly when condition met\n5. Test alert cooldown prevents spam\n6. Test rules persist across sessions via Supabase",
+        "priority": "high",
+        "dependencies": [
+          "12"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "20",
+        "title": "Build Enhanced Alert Dashboard",
+        "description": "Redesign the alert system with a centralized alert feed showing severity badges (info/warning/critical), filtering by ticker/type/severity/date, one-click 'Analyze this' action, mark as read/dismiss/snooze, unread badge count in navigation, and alert history with search.",
+        "details": "New render_alerts() section or enhanced watchlist page. Glass-styled alert cards with severity color coding (info=TAM blue, warning=orange, critical=red). Filter bar at top with multi-select dropdowns. Each alert card has: ticker, type icon, message, timestamp, severity badge, and action buttons (Analyze, Dismiss, Snooze). 'Analyze' pre-loads research chat with alert context. Unread count badge in sidebar nav next to Watchlist. Alert history tab with date range picker and search.",
+        "testStrategy": "1. Test alert display with all severity levels\n2. Test filtering by each criterion\n3. Test 'Analyze this' opens research with correct context\n4. Test mark as read updates count\n5. Test snooze hides alert for configured duration\n6. Test alert history search returns correct results",
+        "priority": "medium",
+        "dependencies": [
+          "19"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "21",
+        "title": "Build Morning Brief System",
+        "description": "Implement an AI-generated daily digest that scans all user watchlist/portfolio tickers, checks overnight price movements and news, and generates a concise 'Good morning' brief. Delivered as a dashboard widget and optionally via email. Uses APScheduler for scheduling.",
+        "details": "Create prompts/morning_brief.py with a concise, actionable prompt template. Sections: Market Pulse (TASI summary), Watchlist Movers (top 3 up/down), News Highlights (key headlines), Upcoming Events (earnings/dividends in next 7 days), AI Insights (pattern observations). Use APScheduler to run at configurable time (default 7am AST). Store briefs in Supabase (morning_briefs table). Dashboard widget: 'Good morning, [Name]' glass card with expandable brief. Optional email delivery via SendGrid or Supabase Edge Functions.",
+        "testStrategy": "1. Test brief generation for a sample watchlist\n2. Test scheduler fires at configured time\n3. Test brief content includes all sections\n4. Test dashboard widget renders correctly\n5. Test brief storage and retrieval from Supabase\n6. Test email delivery (if enabled)\n7. Test brief for empty watchlist (graceful handling)",
+        "priority": "high",
+        "dependencies": [
+          "12",
+          "14"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "22",
+        "title": "Build DCF Model Builder",
+        "description": "Create an interactive discounted cash flow calculator with editable assumptions (revenue growth, margins, WACC, terminal growth), projected free cash flows, sensitivity analysis table, scenario analysis (bull/base/bear), and AI commentary on the valuation result.",
+        "details": "Create data/dcf_model.py with DCFCalculator class. Inputs: revenue growth rates (5yr), operating margin trajectory, WACC (auto-calc from beta + risk-free + ERP, or manual), terminal growth rate, tax rate, shares outstanding (auto from yfinance). Outputs: projected FCF table, terminal value, enterprise value, equity value, implied price, upside/downside. Sensitivity table: 2D matrix of implied price across WACC (7-13%) and terminal growth (1-4%). Scenario toggles: Bull (optimistic), Base (consensus), Bear (conservative) with pre-set assumption shifts. Claude generates commentary interpreting result. UI: glass card input panel + output panel + sensitivity heatmap. Export to XLSX with formatted sensitivity table.",
+        "testStrategy": "1. Test DCF calculation against manual spreadsheet for ARAMCO\n2. Test sensitivity table values are mathematically correct\n3. Test scenario toggles change assumptions correctly\n4. Test auto-fill from Yahoo Finance data\n5. Test WACC auto-calculation from beta\n6. Test Excel export with proper formatting\n7. Test AI commentary generation",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "23",
+        "title": "Build Risk Metrics Dashboard",
+        "description": "Add portfolio-level risk analytics: Value at Risk (95% confidence), Sharpe ratio, maximum drawdown, correlation matrix heatmap, and beta analysis. Displayed as interactive Plotly visualizations on the Portfolio page.",
+        "details": "Create data/risk_metrics.py module. Calculate: historical VaR (95%, 1-day and 10-day), parametric VaR, Sharpe ratio (using TASI as benchmark), max drawdown with recovery period, correlation matrix between portfolio holdings, individual and portfolio beta. Use 1-year daily returns from yfinance. Display: VaR gauge chart, Sharpe ratio card, drawdown chart (Plotly area), correlation heatmap (Plotly), risk summary table. All styled with TAM Liquid Glass theme.",
+        "testStrategy": "1. Test VaR calculation against known formula\n2. Test Sharpe ratio with risk-free rate input\n3. Test drawdown calculation identifies correct peak-to-trough\n4. Test correlation matrix is symmetric with 1.0 diagonal\n5. Test with portfolio of 1 stock (edge case)\n6. Test visualizations render correctly",
+        "priority": "medium",
+        "dependencies": [
+          "18"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "24",
+        "title": "Build User Activity Tracking System",
+        "description": "Implement event tracking that logs every user action (search, analyze, view report, export, add watchlist, view chart, set alert) to the user_activity Supabase table. Build admin-facing usage analytics with heatmaps, top tickers, and feature adoption metrics.",
+        "details": "Create data/activity_tracker.py with track_event(user_id, action_type, ticker, metadata) function. Instrument all key touchpoints in app.py: report generation, export downloads, watchlist modifications, chart views, alert rule creation. Metadata captures: page, duration, parameters used. Admin dashboard widgets: daily active users chart, top 10 tickers bar chart, feature adoption funnel (research \u2192 export \u2192 share), usage heatmap by hour/day.",
+        "testStrategy": "1. Test events logged for each action type\n2. Test event contains correct user_id and metadata\n3. Test admin dashboard displays aggregated stats\n4. Test filtering by date range and user\n5. Test performance impact (logging should be async/non-blocking)\n6. Test privacy: users cannot see others' activity",
+        "priority": "medium",
+        "dependencies": [
+          "12",
+          "15"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "25",
+        "title": "Build Sentiment Scoring and Trend Database",
+        "description": "Extract sentiment scores from every AI-generated report across 5 categories (overall, management tone, financial health, growth outlook, risk level). Store in ai_sentiment_scores table. Build sentiment trend charts showing score evolution over time per ticker.",
+        "details": "Add sentiment extraction step to report generation pipeline. After Claude generates each section, run a secondary prompt to extract a -1.0 to 1.0 sentiment score per category. Store in Supabase with ticker, report_id, category, score, timestamp. Build Plotly time-series chart: x=date, y=score, color=category. Add to ticker detail view. Build cross-ticker comparison: sentiment comparison across sector peers. Add sentiment alerts: notify when score shifts >0.3 between consecutive reports.",
+        "testStrategy": "1. Test sentiment extraction produces valid scores (-1 to 1)\n2. Test all 5 categories scored for a sample report\n3. Test scores stored correctly in Supabase\n4. Test trend chart displays historical scores\n5. Test cross-ticker comparison view\n6. Test sentiment alert triggers on significant shift",
+        "priority": "medium",
+        "dependencies": [
+          "12",
+          "14"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "26",
+        "title": "Build Personalized Recommendation Engine",
+        "description": "Create an ML-based recommendation system that learns from user behavior to provide smart suggestions: ticker affinity scoring, contextual prompts ('SABIC earnings in 3 days'), related tickers, and personalized dashboard ordering. Uses collaborative filtering on user_activity data.",
+        "details": "Create ml/recommendation_engine.py. Ticker Affinity Model: weighted score per ticker per user based on research frequency (recency-weighted), watchlist inclusion, portfolio holdings, alert rules, report exports. Smart Suggestions: check upcoming events (earnings dates, dividend dates from yfinance), cross-reference with user's tracked tickers, generate contextual prompts. Related Tickers: cosine similarity between user behavior vectors (collaborative filtering). Dashboard integration: 'Suggested for you' glass card section showing top 3 recommendations with reasoning. Batch update affinity scores nightly.",
+        "testStrategy": "1. Test affinity scoring produces reasonable rankings\n2. Test suggestions appear for users with activity history\n3. Test related tickers are from same/similar sectors\n4. Test suggestions update when user behavior changes\n5. Test cold start: new user with no history gets sector-based defaults\n6. Test dashboard widget renders suggestions correctly",
+        "priority": "medium",
+        "dependencies": [
+          "24",
+          "25"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "27",
+        "title": "Build Predictive Signals System (Experimental)",
+        "description": "Create experimental ML signals: earnings surprise probability, momentum score, and risk signal. Display as 'AI Signals' badges on ticker cards with confidence levels. Clearly labeled as experimental with CMA compliance disclaimers.",
+        "details": "Create ml/predictive_signals.py. Earnings Surprise: analyze historical earnings vs estimates pattern from yfinance, combine with current sentiment score, output probability (0-100%). Momentum Score: composite of 14-day price momentum + volume trend (20-day) + sentiment trend, normalized 0-100. Risk Signal: combines VaR percentile + sentiment decline rate + volume anomaly score, outputs low/medium/high with score. Display as colored badges on ticker cards and research page. Every signal includes: confidence level, calculation timestamp, disclaimer text. CMA compliance: 'This is an AI-generated experimental signal and does not constitute investment advice.'",
+        "testStrategy": "1. Test each signal produces valid output range\n2. Test signals update when new data available\n3. Test badge display on ticker cards\n4. Test disclaimer is always visible\n5. Test with tickers that have limited history (edge case)\n6. Backtest signals against historical data for basic validation",
+        "priority": "low",
+        "dependencies": [
+          "25",
+          "23"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "28",
+        "title": "Build Research Notes System",
+        "description": "Allow analysts to attach timestamped markdown notes to any ticker. Notes are searchable, taggable, and visible on report detail and ticker overview pages. Includes pin-to-top functionality for important notes.",
+        "details": "Create data/research_notes.py with NotesDAO for CRUD operations. UI: notes panel on Research page sidebar and ticker detail view. Each note: markdown content, tags (multi-select), pinned status, timestamp, author. New note form: text area + tag selector + save button. Notes list: sorted by pinned first, then date. Search bar: full-text search across all notes for the user. Tags: predefined (Bullish, Bearish, Catalyst, Risk, Earnings, Technical) + custom. Display author avatar + name for team visibility.",
+        "testStrategy": "1. Test creating, editing, deleting notes\n2. Test notes appear on correct ticker pages\n3. Test search returns matching notes\n4. Test tag filtering\n5. Test pin/unpin functionality\n6. Test notes persist across sessions via Supabase",
+        "priority": "medium",
+        "dependencies": [
+          "12",
+          "15"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "29",
+        "title": "Build Scheduled Report Generation",
+        "description": "Allow users to configure recurring report generation: weekly watchlist refresh, monthly portfolio review, or custom ticker/schedule combinations. Uses APScheduler with Supabase-backed schedule storage. Generated reports are auto-stored and optionally emailed.",
+        "details": "Create services/scheduler.py using APScheduler with Supabase job store. Schedule types: weekly watchlist refresh (regenerate all watched ticker reports), monthly portfolio review (comprehensive portfolio analysis), custom (any ticker, any cron schedule). UI: schedule manager page showing active schedules with next run time, toggle on/off, edit/delete. When triggered: run analysis silently, store report in Supabase, send email notification with PDF attachment (optional). Handle failures gracefully: retry once, then alert user.",
+        "testStrategy": "1. Test creating weekly schedule\n2. Test schedule triggers at correct time\n3. Test generated report is stored correctly\n4. Test email notification sent on completion\n5. Test schedule can be paused and resumed\n6. Test failure handling and retry logic\n7. Test multiple concurrent scheduled jobs",
+        "priority": "medium",
+        "dependencies": [
+          "14",
+          "21"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "30",
+        "title": "Build Audit Trail and Compliance Logging",
+        "description": "Log every significant user action (report generation, exports, logins, admin changes, data modifications) to an append-only audit log in Supabase. Build admin-facing audit log viewer with filtering. Meets CMA regulatory record-keeping requirements.",
+        "details": "Create data/audit_log.py with log_action(user_id, action, resource, details) function. Actions to log: login/logout, report generated, report exported (which format), watchlist modified, portfolio modified, alert rule created/modified, admin actions (user invite, role change, deactivation), system config changes. Audit table: append-only (no UPDATE/DELETE permissions via RLS). Admin viewer: filterable table with columns for timestamp, user, action, resource, details. Export audit log to CSV/Excel for compliance submissions.",
+        "testStrategy": "1. Test all action types are logged\n2. Test log entries cannot be modified or deleted\n3. Test admin viewer displays correct data\n4. Test filtering by user, action, date range\n5. Test export to CSV\n6. Test high-volume logging doesn't impact performance",
+        "priority": "medium",
+        "dependencies": [
+          "12",
+          "15",
+          "17"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "31",
+        "title": "Implement Research Cancel/Stop Functionality",
+        "description": "Add the ability to cancel an in-progress research analysis. When a user triggers analysis for the wrong ticker or wants to abort, they can click a 'Stop' button that cancels the Claude API call and returns to the chat input state without waiting for the full generation to complete.",
+        "details": "Modify the analysis pipeline in app.py to support cancellation. Use threading: run analysis in a background thread, check a cancel flag periodically between section generations. Add a 'Stop Research' button (red, prominent) that appears during analysis progress. When clicked: set cancel flag, abort current API call (anthropic client supports cancel), clean up partial results, show 'Research cancelled' message. Partial results: offer to keep what was generated so far or discard entirely. Reset chat input state for new query.",
+        "testStrategy": "1. Test cancel button appears during analysis\n2. Test clicking cancel stops generation within 5 seconds\n3. Test partial results are offered to user\n4. Test discarding partial results cleans up properly\n5. Test new analysis can start immediately after cancel\n6. Test cancel during different stages (section 1, section 5, etc.)",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "32",
+        "title": "Add Interactive Pre-Analysis Questions",
+        "description": "Before running any research, sector analysis, or comparison, ask the user clarifying questions to tailor the output: investment horizon, risk tolerance, specific focus areas, comparison metrics preference, language preference (Arabic/English/Both). Display as a glass-styled question card with smart defaults.",
+        "details": "Create a pre-analysis questionnaire system. For single stock research: ask about investment horizon (short/medium/long-term), focus areas (fundamentals only, technicals only, both, specific sections), risk appetite, output language. For sector analysis: ask about which metrics to emphasize, peer group size, include ESG? For comparison: ask which metrics to compare, weighting preferences, visualization preference (table vs chart). UI: glass card with radio buttons / multi-select checkboxes, 'Quick Start' button that uses defaults, 'Customize' that shows full options. Store user's last preferences as defaults for next time. Inject selected preferences into the Claude prompt for customized output.",
+        "testStrategy": "1. Test question card appears before research\n2. Test 'Quick Start' uses saved defaults\n3. Test 'Customize' shows full options\n4. Test selected preferences affect Claude output\n5. Test preferences persist between sessions\n6. Test for each analysis type (research, sector, comparison)\n7. Test Arabic/English language selection works",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "33",
+        "title": "Build Peer Benchmarking Heat Map",
+        "description": "Create an interactive heat map visualization that compares a stock against its sector peers across 15+ financial ratios. Color-coded cells show relative ranking (green=top quartile, red=bottom quartile). Embedded in Research and Sectors pages.",
+        "details": "Create data/peer_benchmark.py module. For a given ticker, identify sector peers from config.py TADAWUL_SECTORS mapping. Pull key metrics for all peers via yfinance: P/E, P/B, EV/EBITDA, ROE, ROA, debt/equity, dividend yield, revenue growth, profit margin, current ratio, beta, market cap, 52-week return, volume, free cash flow yield. Build Plotly heatmap: rows=tickers, columns=metrics, color scale=relative ranking within peer group. Highlight the target ticker's row. Add sort-by-metric capability. Export to Excel.",
+        "testStrategy": "1. Test peer identification for each Tadawul sector\n2. Test metrics pulled for all peers\n3. Test heatmap renders with correct colors\n4. Test target ticker row is highlighted\n5. Test sort functionality\n6. Test with sectors of different sizes (2 peers vs 8 peers)\n7. Test Excel export includes all data",
+        "priority": "medium",
+        "dependencies": [
+          "18"
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": "34",
+        "title": "Build Financial Statement Interactive Viewer",
+        "description": "Create an interactive 5-year financial statement viewer (income statement, balance sheet, cash flow) with expandable line items, growth rate calculations, margin analysis, and trend sparklines. Displayed as glass-styled tables with Plotly mini-charts.",
+        "details": "Create data/financial_viewer.py module. Pull 5-year annual financials from yfinance (income_stmt, balance_sheet, cashflow). Display as expandable HTML tables with: line item name, 5 years of values, YoY growth %, CAGR, sparkline trend. Three tabs: Income Statement, Balance Sheet, Cash Flow. Key metrics highlighted: revenue, net income, total assets, free cash flow. Margins calculated inline: gross margin, operating margin, net margin. All numbers formatted with locale-aware formatting (SAR thousands/millions). Glass card styling consistent with TAM Liquid Glass theme.",
+        "testStrategy": "1. Test data loads for Saudi tickers\n2. Test all three statement types display correctly\n3. Test growth rate calculations are accurate\n4. Test sparklines render correctly\n5. Test expandable sections toggle properly\n6. Test with tickers missing some data (graceful handling)",
+        "priority": "medium",
+        "dependencies": [
+          "18"
+        ],
+        "status": "done",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-03-30T14:35:37.828Z",
+      "taskCount": 10,
+      "completedCount": 10,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}

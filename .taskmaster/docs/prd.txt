@@ -1,0 +1,205 @@
+# Product Requirements Document
+# TAMS Research Agent — AI-Powered Equity Research Platform
+# Version 1.0 | Author: Mohammed Malki (COO/CDO, TAM Capital)
+
+---
+
+## 1. PROJECT OVERVIEW
+
+### 1.1 Product Vision
+TAMS Research Agent is an AI-powered equity research platform for TAM Capital's asset management and business units. It automates the generation of professional research reports, financial analysis, and investment presentations — saving analysts hours of manual work per report while maintaining TAM's brand standards and output quality.
+
+### 1.2 Target Users
+- Primary: Equities Research Analysts and Stock Research Team (3-5 analysts in pilot)
+- Secondary: Senior Analysts, Portfolio Managers, Business Unit Heads
+- Admin: Super Admin (Mohammed Malki)
+
+### 1.3 Tech Stack (Existing — Phase 1 Complete)
+- Backend: Python FastAPI
+- Frontend: Next.js 14 + TypeScript + Tailwind CSS (TAM Capital colors)
+- Database: PostgreSQL + Redis (via Docker)
+- AI: Anthropic Claude API
+- Data Sources: Yahoo Finance, DuckDuckGo news, source collector with real-time/delayed tracking
+- Background Tasks: Celery with progress reporting
+- Document Generation: DOCX (TAM-branded letterhead ✓), PDF (needs improvement), PPTX (needs improvement)
+- Infrastructure: Docker + docker-compose, nginx, Supabase seed script
+- Auth: JWT
+
+### 1.4 Existing Feature State (Phase 1 Complete)
+The following are built and partially working:
+- Research Chat: session list, chat with analysis progress bar ✓
+- Report Library: grid view, ticker filtering, comparison link ✓
+- Report Detail: expandable sections, downloads, share links, data source badges ✓
+- Report Comparison: side-by-side metrics, change tracking (needs work)
+- Dashboard: feature cards and recent reports ✓
+- DOCX generation with TAM letterhead ✓
+- PDF generation (needs improvement)
+- PPTX generation (needs improvement)
+- 11 analysis modules: 8 from POC + ESG, Peer Comparison, Insider Activity
+- 11 database models: tenants, users, chat sessions, reports, snapshots, files, sources, share links
+
+### 1.5 Known Issues to Fix (Phase 0)
+- Presentations (PPTX) need quality improvement
+- PDF output needs formatting and quality improvement
+- Report comparison feature incomplete
+
+---
+
+## 2. PHASED DELIVERY PLAN
+
+---
+
+### PHASE 0 — Output Quality Fixes (Priority: CRITICAL)
+**Goal:** Fix existing output quality issues before onboarding analysts.
+
+#### Tasks:
+- Fix PPTX generation: improve slide layout, charts, TAM branding consistency
+- Fix PDF generation: improve formatting, typography, page layout, TAM letterhead
+- Fix report comparison: complete side-by-side metrics and change tracking
+- Test full research workflow end-to-end: input ticker → analysis → all 3 output formats
+- Fix any broken API endpoints or data source failures
+- Test with 3 real Saudi/GCC tickers (e.g. ARAMCO, STC, SABIC)
+- Write TESTING.md documenting what works and known limitations
+
+**Acceptance Criteria:** All 3 output formats (DOCX, PDF, PPTX) are production-quality and pass analyst review.
+
+---
+
+### PHASE 1 — Report Version Comparison & History
+**Goal:** Analysts can compare current report against previous reports for the same ticker.
+
+#### Tasks:
+- Build report versioning: every generated report is saved as a versioned snapshot per ticker
+- Build version diff engine: compare two report versions, highlight changes in valuation, outlook, risks, financials
+- Build report history view: timeline of all reports generated for a ticker
+- Build change summary: auto-generate "what changed since last report" summary
+- Frontend: Report History page per ticker with version selector
+- Frontend: Version Comparison view — side-by-side with highlighted diffs
+- Frontend: Change summary panel at top of every new report showing delta from previous
+- Bilingual: all comparison output in Arabic and English
+
+**Acceptance Criteria:** Analyst can open any report and see exactly what changed since the last report for that ticker, with a clear summary of key changes.
+
+---
+
+### PHASE 2 — Analyst Watchlist & Change Alerts
+**Goal:** Analysts track a set of tickers and get notified when significant changes occur.
+
+#### Tasks:
+- Build watchlist model: each analyst maintains a personal watchlist of tickers
+- Build market monitoring service: background job checks watchlist tickers for significant changes (price movement, news, earnings, analyst rating changes)
+- Build alert engine: trigger alerts when monitored conditions are met
+- Build alert types: price threshold, earnings announcement, major news event, new regulatory filing
+- Build notification system: in-app alerts + email digest
+- Build alert history: log of all triggered alerts per ticker per analyst
+- Frontend: Watchlist page with add/remove tickers, alert configuration per ticker
+- Frontend: Alert center with unread alerts, alert history, mark as read
+- Frontend: Dashboard widget showing watchlist summary and recent alerts
+
+**Acceptance Criteria:** Analyst adds ARAMCO to watchlist, sets a price alert, and receives a notification when the condition is met.
+
+---
+
+### PHASE 3 — Peer & Sector Comparison
+**Goal:** Any research report can include an automated peer comparison against sector benchmarks.
+
+#### Tasks:
+- Build peer universe database: map tickers to sectors and define peer groups for Saudi/GCC market
+- Build peer comparison engine: pull key metrics for all peers and benchmark the target stock
+- Build sector analysis module: sector performance, valuation multiples, relative positioning
+- Build peer comparison report section: auto-generated peer table with rankings
+- Build custom peer selection: analyst can override default peers and select custom comparison set
+- Integrate peer comparison into standard research workflow
+- Frontend: Peer Comparison tab in report detail
+- Frontend: Sector Overview page showing all stocks in a sector with key metrics
+- Excel export: peer comparison table exportable to structured spreadsheet
+
+**Acceptance Criteria:** Every research report includes a peer comparison table with sector rankings. Analyst can customize the peer group.
+
+---
+
+### PHASE 4 — Excel Financial Model Export
+**Goal:** Research reports export key financial metrics into a structured Excel model.
+
+#### Tasks:
+- Build financial model schema: standardized structure for income statement, balance sheet, cash flow, valuation multiples, growth rates
+- Build Excel export engine: generate .xlsx file from report data with proper formatting
+- Build model templates: support firm-provided Excel templates (analysts upload their template, agent populates it)
+- Build template manager: upload, version, and manage Excel templates per sector or report type
+- Build multi-ticker export: export comparison data for multiple tickers into one workbook
+- Frontend: Export options on report detail page (DOCX / PDF / PPTX / Excel)
+- Frontend: Template Manager for uploading and managing firm templates
+
+**Acceptance Criteria:** Analyst can export any research report to a populated Excel financial model, including support for firm-provided templates.
+
+---
+
+### PHASE 5 — Team Collaboration & Workflow
+**Goal:** Research reports go through a structured review and approval workflow before distribution.
+
+#### Tasks:
+- Build report workflow: draft → analyst review → senior analyst approval → published
+- Build comments and annotations: analysts can comment on specific sections of a report
+- Build internal sharing: generate internal share links with access control
+- Build bulk research: run analysis on multiple tickers in one session, queue management
+- Build report templates: firm-provided research templates uploaded by admin, populated by agent
+- Build report scheduling: schedule recurring reports for watchlist tickers (weekly/monthly)
+- Frontend: Report workflow status bar showing current stage
+- Frontend: Comments panel on report detail page
+- Frontend: Bulk Research page for multi-ticker queue management
+- Frontend: Template Library for firm-provided report templates
+- Bilingual: all collaboration features in Arabic and English
+
+**Acceptance Criteria:** An analyst can generate a report, annotate it, submit for review, and a senior analyst can approve and publish it.
+
+---
+
+### PHASE 6 — Admin & Multi-Tenancy
+**Goal:** Admin panel for managing analysts, usage, and platform configuration.
+
+#### Tasks:
+- Build admin data model: Admin > Senior Analyst > Analyst roles
+- Build usage tracking: reports generated per user, API consumption, data source usage
+- Build admin dashboard: user management, usage stats, system health
+- Build tenant isolation: if platform expands to other firms, strict data separation
+- Build audit log: all report generations, exports, shares logged with timestamps
+- Frontend: /admin panel with user management and usage dashboard
+
+**Acceptance Criteria:** Admin can see how many reports each analyst generated, manage access, and view platform health.
+
+---
+
+## 3. NON-FUNCTIONAL REQUIREMENTS
+
+### Performance
+- Report generation < 60 seconds for standard analysis
+- PDF/PPTX/DOCX export < 15 seconds
+- Support 3-5 concurrent analyst sessions in pilot
+
+### Quality
+- All outputs must match TAM Capital brand standards (letterhead, colors, typography)
+- Bilingual support: Arabic (RTL) and English on all reports
+- Financial data accuracy: all figures sourced and attributed
+
+### Security
+- JWT authentication on all endpoints
+- No cross-tenant data leakage
+- Report share links expire after configurable period
+
+### Deployment
+- Docker + docker-compose (existing)
+- Backend + frontend deployable to Railway or AWS
+
+---
+
+## 4. SUCCESS METRICS
+
+| Metric | Target |
+|--------|--------|
+| Phase 0 complete | All 3 output formats production-quality |
+| Pilot launch (Phases 0-1) | 3-5 analysts onboarded, 2-3 weeks from start |
+| Phase 2-3 complete | Watchlist + peer comparison live, 6-8 weeks |
+| Full platform (all phases) | 4-5 months from start |
+| Time saved per report | From 4+ hours manual → under 30 minutes |
+| Analyst adoption | 100% of research team using by end of pilot |
+| Report approval rate | >85% reports require no major edits |

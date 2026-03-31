@@ -1,4 +1,4 @@
-"""TAM's Research & Reporting Agent - Institutional-Grade Chat Interface."""
+"""TAM's Research & Reporting Agent — Finance Dashboard UI."""
 
 import os
 import sys
@@ -28,6 +28,9 @@ from data.watchlist import (
     add_ticker, remove_ticker, get_watchlist, get_all_watched_tickers,
 )
 from data.market_monitor import scan_watchlist, get_all_alerts
+from data.portfolio import (
+    get_positions, add_position, remove_position, calculate_portfolio_metrics
+)
 from data.alert_engine import (
     process_monitor_alerts, get_recent_alerts, get_unread_count, mark_all_read,
 )
@@ -40,6 +43,7 @@ from data.chart_generator import generate_all_charts
 from generators.docx_generator import generate_docx_report
 from generators.pdf_generator import generate_pdf_report, convert_docx_to_pdf
 from generators.pptx_generator import generate_pptx_report
+from generators.xlsx_generator import generate_xlsx_report
 from prompts.report_compiler import (
     EXECUTIVE_SUMMARY_PROMPT, DISCLAIMER_TEXT,
     get_analysis_type_from_request
@@ -47,10 +51,137 @@ from prompts.report_compiler import (
 from templates.report_structure import SECTION_CONFIG
 
 import anthropic
+import threading
+
+# --- Plotly charts (optional — graceful fallback to matplotlib) ---
+try:
+    from data.interactive_charts import (
+        generate_candlestick_chart, generate_rsi_chart, generate_macd_chart,
+        generate_comparison_chart,
+        calculate_technical_indicators as calc_plotly_technicals,
+    )
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
+# --- DCF model (optional) ---
+try:
+    from data.dcf_model import DCFModel, get_default_assumptions, format_dcf_for_display
+    DCF_AVAILABLE = True
+except ImportError:
+    DCF_AVAILABLE = False
+
+# --- Risk metrics (optional) ---
+try:
+    from data.risk_metrics import calculate_portfolio_risk, generate_risk_charts
+    RISK_AVAILABLE = True
+except ImportError:
+    RISK_AVAILABLE = False
+
+# --- Peer benchmarking (optional) ---
+try:
+    from data.peer_benchmark import (
+        get_sector_for_ticker, get_peers, fetch_peer_metrics,
+        calculate_peer_rankings, generate_peer_heatmap, generate_peer_comparison_table,
+    )
+    PEERS_AVAILABLE = True
+except ImportError:
+    PEERS_AVAILABLE = False
+
+# --- Financial statement viewer (optional) ---
+try:
+    from data.financial_viewer import generate_financial_overview
+    FINANCIALS_VIEWER_AVAILABLE = True
+except ImportError:
+    FINANCIALS_VIEWER_AVAILABLE = False
+
+# --- Supabase client (optional) ---
+try:
+    from data.supabase_client import SUPABASE_AVAILABLE
+except ImportError:
+    SUPABASE_AVAILABLE = False
+
+# --- Auth & RBAC (optional) ---
+try:
+    from auth.login import render_login_page, is_authenticated, get_current_user, logout
+    from auth.rbac import has_permission, can_access_page, is_admin, is_super_admin
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+
+# --- Admin panel (optional) ---
+try:
+    from pages.admin import render_admin
+    ADMIN_AVAILABLE = True
+except ImportError:
+    ADMIN_AVAILABLE = False
+
+# --- Alert rules UI (optional) ---
+try:
+    from data.alert_rules_ui import render_alert_rules_panel, check_alert_rules
+    ALERT_RULES_AVAILABLE = True
+except ImportError:
+    ALERT_RULES_AVAILABLE = False
+
+# --- Morning brief (optional) ---
+try:
+    from prompts.morning_brief import generate_morning_brief, format_brief_for_display
+    MORNING_BRIEF_AVAILABLE = True
+except ImportError:
+    MORNING_BRIEF_AVAILABLE = False
+
+# --- Activity tracking (optional) ---
+try:
+    from data.activity_tracker import track_activity, get_activity_summary
+    ACTIVITY_AVAILABLE = True
+except ImportError:
+    ACTIVITY_AVAILABLE = False
+
+# --- Audit logging (optional) ---
+try:
+    from data.audit_logger import log_audit
+    AUDIT_AVAILABLE = True
+except ImportError:
+    AUDIT_AVAILABLE = False
+
+# --- Sentiment tracking (optional) ---
+try:
+    from data.sentiment_tracker import extract_sentiment, store_sentiment, generate_sentiment_chart
+    SENTIMENT_AVAILABLE = True
+except ImportError:
+    SENTIMENT_AVAILABLE = False
+
+# --- Recommendations (optional) ---
+try:
+    from data.recommendation_engine import get_smart_suggestions, generate_suggestions_html
+    RECOMMENDATIONS_AVAILABLE = True
+except ImportError:
+    RECOMMENDATIONS_AVAILABLE = False
+
+# --- Predictive signals (optional) ---
+try:
+    from data.predictive_signals import get_all_signals, generate_signal_badges_html
+    SIGNALS_AVAILABLE = True
+except ImportError:
+    SIGNALS_AVAILABLE = False
+
+# --- Research notes (optional) ---
+try:
+    from data.research_notes import render_notes_panel
+    NOTES_AVAILABLE = True
+except ImportError:
+    NOTES_AVAILABLE = False
+
+# --- Scheduled reports (optional) ---
+try:
+    from data.scheduled_reports import render_schedule_panel
+    SCHEDULES_AVAILABLE = True
+except ImportError:
+    SCHEDULES_AVAILABLE = False
 
 # --- Page config ---
 st.set_page_config(
-    page_title="TAM's Research & Reporting Agent",
+    page_title="TAM Capital — Research Terminal",
     page_icon="https://www.tamcapital.com.sa/favicon.ico",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -69,7 +200,6 @@ except Exception:
     api_key = ANTHROPIC_API_KEY
 
 
-
 # --- Logo helper ---
 def get_logo_base64():
     """Get TAMS logo as base64 for HTML embedding."""
@@ -82,26 +212,136 @@ def get_logo_base64():
 LOGO_B64 = get_logo_base64()
 
 
-# --- Sidebar ---
+# ==========================================================
+# DESIGN SYSTEM — Reusable HTML Components
+# ==========================================================
+
+# Color palette — TAM Brand + Liquid Glass (must match CSS vars)
+C_BG = "#070B14"
+C_CARD = "rgba(26,38,78,0.15)"
+C_GLASS = "rgba(34,47,98,0.12)"
+C_BORDER = "rgba(108,185,182,0.08)"
+C_BORDER_HOVER = "rgba(108,185,182,0.18)"
+C_ACCENT = "#1A6DB6"       # TAM Light Blue
+C_ACCENT2 = "#6CB9B6"      # TAM Turquoise
+C_DEEP = "#222F62"          # TAM Deep Blue
+C_TEXT = "#E6EDF3"
+C_TEXT2 = "#8B949E"
+C_MUTED = "#4A5568"
+C_GREEN = "#22C55E"         # TAM Logo Green = Success/Growth
+C_RED = "#EF4444"
+C_ORANGE = "#F59E0B"
+
+ACCENT_GRADIENT = "linear-gradient(135deg, #222F62 0%, #1A6DB6 50%, #6CB9B6 100%)"
+ACCENT_TEXT_GRADIENT = "linear-gradient(135deg, #5B9BD5 0%, #6CB9B6 60%, #8DD8D0 100%)"
+
+
+def _glass_card_style(padding="24px", height=None, extra=""):
+    """Reusable glass card inline style."""
+    h = f"height:{height};" if height else ""
+    return (
+        f"background:{C_CARD};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);"
+        f"border:1px solid {C_BORDER};border-radius:16px;padding:{padding};{h}"
+        f"transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;"
+        f"{extra}"
+    )
+
+
+def _accent_label(text):
+    """Small gradient label text."""
+    return (
+        f'<p style="background:{ACCENT_TEXT_GRADIENT};'
+        f'-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+        f'font-size:0.6rem;text-transform:uppercase;letter-spacing:0.18em;'
+        f'margin-bottom:6px;font-weight:700;">{text}</p>'
+    )
+
+
+def _section_label(text):
+    """Sidebar section label."""
+    return (
+        f'<p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.18em;'
+        f'color:{C_MUTED} !important;margin-bottom:8px;font-weight:600;">{text}</p>'
+    )
+
+
+# ==========================================================
+# SESSION STATE INITIALIZATION
+# ==========================================================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "report_files" not in st.session_state:
+    st.session_state.report_files = {}
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "dashboard"
+if "cancel_analysis" not in st.session_state:
+    st.session_state.cancel_analysis = False
+if "analysis_running" not in st.session_state:
+    st.session_state.analysis_running = False
+if "analysis_preferences" not in st.session_state:
+    st.session_state.analysis_preferences = {
+        "horizon": "Medium-term (6-12 months)",
+        "focus": ["Full Analysis"],
+        "language": "English",
+        "include_dcf": False,
+    }
+if "show_preferences" not in st.session_state:
+    st.session_state.show_preferences = False
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
+
+
+# ==========================================================
+# NAVIGATION PAGES
+# ==========================================================
+NAV_PAGES = [
+    ("dashboard", "Dashboard",    "grid_view"),
+    ("research",  "Research",     "search"),
+    ("portfolio", "Portfolio",    "account_balance_wallet"),
+    ("sectors",   "Sectors",      "domain"),
+    ("comparison","Compare",      "compare_arrows"),
+    ("watchlist", "Watchlist",    "visibility"),
+    ("alerts",    "Alerts",       "notifications"),
+    ("admin",     "Admin",        "admin_panel_settings"),
+]
+
+# Unicode icons (Material Symbols fallback)
+NAV_ICONS = {
+    "dashboard": "\u25A6",
+    "research": "\u2315",
+    "portfolio": "\u25C8",
+    "sectors": "\u25A3",
+    "comparison": "\u21C4",
+    "watchlist": "\u25C9",
+    "alerts": "\u26A0",
+    "admin": "\u2699",
+}
+
+
+# ==========================================================
+# SIDEBAR — Navigation Panel
+# ==========================================================
 with st.sidebar:
     # Logo
     if LOGO_B64:
         st.markdown(
             f"""
-            <div style="text-align: center; padding: 20px 0 10px 0;">
-                <img src="data:image/png;base64,{LOGO_B64}" width="180"
-                     style="filter: brightness(0) invert(1);" />
+            <div style="text-align:center;padding:20px 0 6px 0;">
+                <img src="data:image/png;base64,{LOGO_B64}" width="160"
+                     style="filter:brightness(0) invert(1);opacity:0.85;" />
             </div>
             """,
             unsafe_allow_html=True
         )
 
     st.markdown(
-        """
-        <div style="text-align: center; padding: 0 0 16px 0;">
-            <span style="color: #2EAD6D; font-size: 0.75rem; font-weight: 600;
-                         letter-spacing: 0.15em; text-transform: uppercase;">
-                Research & Reporting Agent
+        f"""
+        <div style="text-align:center;padding:0 0 12px 0;">
+            <span style="background:{ACCENT_TEXT_GRADIENT};
+                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                         font-size:0.65rem;font-weight:700;
+                         letter-spacing:0.18em;text-transform:uppercase;">
+                Research Terminal
             </span>
         </div>
         """,
@@ -110,119 +350,102 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # --- Watchlist ---
-    st.markdown(
-        '<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-        'color: #7B8FA3 !important; margin-bottom: 8px;">Watchlist</p>',
-        unsafe_allow_html=True
-    )
+    # --- Navigation ---
+    st.markdown(_section_label("Navigation"), unsafe_allow_html=True)
 
-    # Ensure default watchlist exists with starter tickers
-    wl_list = get_watchlists()
-    if not wl_list:
-        try:
-            default_wl = create_watchlist("My Watchlist", "Default watchlist")
-            for t, n in [("2020", "SABIC AN"), ("2222", "Aramco"),
-                         ("1120", "Al Rajhi"), ("7010", "STC")]:
-                add_ticker(default_wl["id"], resolve_ticker(t), n)
-        except Exception:
-            pass
-        wl_list = get_watchlists()
-
-    if wl_list:
-        active_wl = get_default_watchlist()
-        if active_wl and active_wl.get("items"):
-            # Quick-report buttons from watchlist items
-            items = active_wl["items"]
-            for row_start in range(0, len(items), 2):
-                cols = st.columns(2)
-                for i, col in enumerate(cols):
-                    idx = row_start + i
-                    if idx < len(items):
-                        item = items[idx]
-                        with col:
-                            if st.button(item["name"], key=f"wl_{idx}",
-                                         use_container_width=True):
-                                st.session_state["quick_prompt"] = (
-                                    f"Full report on {item['name']} ({item['ticker']})"
-                                )
-
-        # Add / remove ticker controls
-        with st.expander("Manage Watchlist", expanded=False):
-            add_col, rm_col = st.columns(2)
-            with add_col:
-                new_ticker = st.text_input("Add ticker", key="wl_add_input",
-                                           placeholder="e.g. 2222",
-                                           label_visibility="collapsed")
-                if st.button("Add", key="wl_add_btn", use_container_width=True) and new_ticker:
-                    try:
-                        resolved = resolve_ticker(new_ticker.strip())
-                        add_ticker(active_wl["id"], resolved, new_ticker.strip().upper())
-                        st.rerun()
-                    except ValueError as e:
-                        st.warning(str(e))
-            with rm_col:
-                if active_wl and active_wl.get("items"):
-                    rm_choice = st.selectbox(
-                        "Remove", [i["ticker"] for i in active_wl["items"]],
-                        key="wl_rm_select", label_visibility="collapsed"
-                    )
-                    if st.button("Remove", key="wl_rm_btn", use_container_width=True):
-                        remove_ticker(active_wl["id"], rm_choice)
-                        st.rerun()
-    else:
-        # Fallback static buttons if watchlist init failed
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("SABIC AN", key="q1", use_container_width=True):
-                st.session_state["quick_prompt"] = "Full report on SABIC Agri-Nutrients (2020)"
-        with col2:
-            if st.button("Aramco", key="q2", use_container_width=True):
-                st.session_state["quick_prompt"] = "Full report on Saudi Aramco (2222)"
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Al Rajhi", key="q3", use_container_width=True):
-                st.session_state["quick_prompt"] = "Full report on Al Rajhi Bank (1120)"
-        with col2:
-            if st.button("STC", key="q4", use_container_width=True):
-                st.session_state["quick_prompt"] = "Full report on STC (7010)"
+    for page_key, page_label, _ in NAV_PAGES:
+        # Hide admin page for non-admin users
+        if page_key == "admin" and AUTH_AVAILABLE:
+            if not is_admin():
+                continue
+        icon = NAV_ICONS.get(page_key, "")
+        is_active = st.session_state.current_page == page_key
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(
+            f"{icon}  {page_label}",
+            key=f"nav_{page_key}",
+            use_container_width=True,
+            type=btn_type,
+        ):
+            st.session_state.current_page = page_key
+            st.rerun()
 
     st.markdown("---")
 
-    # --- Market Alerts (cached to avoid I/O on every rerun) ---
+    # --- Mini Portfolio Widget ---
+    positions = get_positions()
+    if positions:
+        st.markdown(_section_label("Portfolio"), unsafe_allow_html=True)
+        live_prices = {}
+        for pos in positions:
+            try:
+                sd = fetch_stock_data(pos["ticker"])
+                price = sd.get("price", sd.get("regularMarketPrice", pos["cost_basis"]))
+                live_prices[pos["ticker"]] = price
+            except Exception:
+                live_prices[pos["ticker"]] = pos["cost_basis"]
+
+        metrics = calculate_portfolio_metrics(positions, live_prices)
+        pnl_color = C_GREEN if metrics["total_pnl"] >= 0 else C_RED
+        pnl_arrow = "+" if metrics["total_pnl"] >= 0 else ""
+        pulse_cls = "data-pulse-green" if metrics["total_pnl"] >= 0 else "data-pulse-red"
+
+        st.markdown(
+            f'<div style="{_glass_card_style("12px")}">'
+            f'<div style="font-size:0.65rem;color:{C_MUTED};margin-bottom:3px;text-transform:uppercase;'
+            f'letter-spacing:0.1em;font-weight:600;">Total Value</div>'
+            f'<div style="font-size:1.05rem;font-weight:700;color:{C_TEXT};">'
+            f'SAR {metrics["total_value"]:,.0f}</div>'
+            f'<div class="{pulse_cls}" style="font-size:0.78rem;color:{pnl_color};margin-top:2px;font-weight:600;">'
+            f'{pnl_arrow}{metrics["total_pnl"]:,.0f} ({pnl_arrow}{metrics["total_pnl_pct"]:.1f}%)</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        for p in metrics["positions"][:4]:
+            p_color = C_GREEN if p["pnl"] >= 0 else C_RED
+            p_arrow = "+" if p["pnl"] >= 0 else ""
+            p_pulse = "data-pulse-green" if p["pnl"] >= 0 else "data-pulse-red"
+            st.markdown(
+                f'<div style="font-size:0.78rem;padding:3px 0;'
+                f'border-bottom:1px solid {C_BORDER};">'
+                f'<span style="color:{C_TEXT};font-weight:500;">{p["name"][:14]}</span> '
+                f'<span class="{p_pulse}" style="color:{p_color};float:right;font-weight:600;">{p_arrow}{p["pnl_pct"]:.1f}%</span>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+        st.markdown("---")
+
+    # --- Alerts ---
     watched = get_all_watched_tickers()
     if watched:
         import time as _time
         _alert_cache = st.session_state.get("_alert_cache", {})
         _cache_age = _time.time() - _alert_cache.get("ts", 0)
-        if _cache_age > 900:  # refresh every 15 minutes
+        if _cache_age > 900:
             raw_alerts = get_all_alerts(watched)
             if raw_alerts:
                 process_monitor_alerts(raw_alerts)
             st.session_state["_alert_cache"] = {"ts": _time.time()}
 
         unread = get_unread_count()
-        recent = get_recent_alerts(limit=5)
+        recent = get_recent_alerts(limit=4)
 
         if recent:
             badge = f" ({unread})" if unread > 0 else ""
-            st.markdown(
-                f'<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-                f'color: #7B8FA3 !important; margin-bottom: 8px;">Alerts{badge}</p>',
-                unsafe_allow_html=True
-            )
+            st.markdown(_section_label(f"Alerts{badge}"), unsafe_allow_html=True)
             for alert in recent:
-                sev_color = {"major": "#D32F2F", "moderate": "#FF9800"}.get(
-                    alert.get("severity"), "#6CB9B6"
+                sev_color = {"major": C_RED, "moderate": C_ORANGE}.get(
+                    alert.get("severity"), C_CYAN
                 )
-                read_opacity = "0.5" if alert.get("is_read") else "1.0"
+                read_opacity = "0.4" if alert.get("is_read") else "1.0"
                 st.markdown(
-                    f'<div style="font-size:0.78rem;margin-bottom:5px;padding:4px 8px;'
-                    f'border-left:3px solid {sev_color};background:rgba(0,0,0,0.15);'
-                    f'border-radius:0 4px 4px 0;opacity:{read_opacity};">'
+                    f'<div style="font-size:0.75rem;margin-bottom:4px;padding:6px 10px;'
+                    f'border-left:2px solid {sev_color};background:{C_GLASS};'
+                    f'border-radius:0 8px 8px 0;opacity:{read_opacity};">'
                     f'{alert["message"]}'
-                    f'<br/><span style="font-size:0.65rem;color:#7B8FA3;">{alert.get("display_time", "")}</span>'
-                    f'</div>',
+                    f'<br/><span style="font-size:0.6rem;color:{C_MUTED};">'
+                    f'{alert.get("display_time", "")}</span></div>',
                     unsafe_allow_html=True
                 )
             if unread > 0:
@@ -231,117 +454,38 @@ with st.sidebar:
                     st.rerun()
             st.markdown("---")
 
-    # Output format
-    st.markdown(
-        '<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-        'color: #7B8FA3 !important; margin-bottom: 8px;">Report Format</p>',
-        unsafe_allow_html=True
-    )
+    st.markdown("---")
+
+    # --- User info + logout ---
+    if AUTH_AVAILABLE and is_authenticated():
+        user = get_current_user()
+        user_name = user.get("full_name", user.get("email", "Analyst")) if user else "Analyst"
+        st.markdown(
+            f'<div style="font-size:0.75rem;color:{C_TEXT2};padding:4px 0;">'
+            f'\u2713 {user_name}</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("Logout", key="logout_btn", use_container_width=True):
+            logout()
+            st.rerun()
+        st.markdown("---")
+
+    # --- Report format selector ---
+    st.markdown(_section_label("Report Format"), unsafe_allow_html=True)
     output_format = st.multiselect(
         "Format",
-        ["Word (DOCX)", "PDF", "PowerPoint (PPTX)"],
+        ["Word (DOCX)", "PDF", "PowerPoint (PPTX)", "Excel (XLSX)"],
         default=["Word (DOCX)"],
         label_visibility="collapsed"
     )
 
-    st.markdown("---")
-
-    # Capabilities
-    st.markdown(
-        '<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-        'color: #7B8FA3 !important; margin-bottom: 8px;">Capabilities</p>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        """
-        <div style="font-size: 0.8rem; line-height: 1.8; color: #9EAFC0 !important;">
-        Fundamental Analysis<br>
-        Technical Analysis<br>
-        Earnings Analysis<br>
-        Dividend Analysis<br>
-        Risk Assessment<br>
-        Sector Rotation<br>
-        News Impact<br>
-        Geopolitical Risk
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # --- Report History & Compare ---
-    st.markdown("---")
-    st.markdown(
-        '<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-        'color: #7B8FA3 !important; margin-bottom: 8px;">Report History</p>',
-        unsafe_allow_html=True
-    )
-
-    saved_reports = list_reports()
-    if saved_reports:
-        # Group by ticker for version browsing
-        tickers_seen = {}
-        for r in saved_reports:
-            if r["ticker"] not in tickers_seen:
-                tickers_seen[r["ticker"]] = r["stock_name"]
-
-        if tickers_seen:
-            selected_ticker = st.selectbox(
-                "Ticker",
-                list(tickers_seen.keys()),
-                format_func=lambda t: f"{tickers_seen[t]} ({t})",
-                key="ver_ticker",
-                label_visibility="collapsed",
-            )
-            versions = get_versions(selected_ticker)
-            if versions:
-                for v in versions[:5]:
-                    ver_label = f"v{v['version']}"
-                    summary = v.get("change_summary", "")
-                    summary_short = (summary[:60] + "...") if len(summary) > 60 else summary
-                    st.markdown(
-                        f'<div style="font-size:0.8rem;margin-bottom:6px;">'
-                        f'<span style="color:#1A6DB6;font-weight:600;">{ver_label}</span> '
-                        f'<span style="color:#9EAFC0;font-size:0.7rem;">{v["date_display"]}</span>'
-                        f'{"<br/><span style=&quot;color:#7B8FA3;font-size:0.7rem;&quot;>" + summary_short + "</span>" if summary_short else ""}'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
-
-        # Compare selector
-        if len(saved_reports) >= 2:
-            st.markdown(
-                '<p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; '
-                'color: #7B8FA3 !important; margin-bottom: 4px; margin-top: 10px;">Compare</p>',
-                unsafe_allow_html=True
-            )
-            report_labels = {
-                r["id"]: f"{'v' + str(r['version']) + ' ' if r.get('version') else ''}"
-                         f"{r['stock_name']} - {r['date_display']}"
-                for r in saved_reports
-            }
-            report_ids = list(report_labels.keys())
-
-            cmp_old = st.selectbox("Older", report_ids,
-                                   format_func=lambda x: report_labels[x],
-                                   key="cmp_old", index=min(1, len(report_ids) - 1))
-            cmp_new = st.selectbox("Newer", report_ids,
-                                   format_func=lambda x: report_labels[x],
-                                   key="cmp_new", index=0)
-
-            if st.button("Compare", key="cmp_btn", use_container_width=True):
-                st.session_state["compare_request"] = (cmp_old, cmp_new)
-    else:
-        st.markdown(
-            '<p style="font-size: 0.78rem; color: #9EAFC0;">Reports will appear here after generation.</p>',
-            unsafe_allow_html=True
-        )
-
     # Footer
     st.markdown(
-        """
-        <div style="position: fixed; bottom: 16px; left: 16px; right: 16px; max-width: 240px;">
-            <hr style="border-color: rgba(46, 173, 109, 0.2); margin-bottom: 8px;" />
-            <p style="font-size: 0.65rem; color: #5A6B7E !important; text-align: center; margin: 0;">
+        f"""
+        <div style="position:fixed;bottom:12px;left:12px;right:12px;max-width:260px;">
+            <hr style="border-color:{C_BORDER};margin-bottom:6px;" />
+            <p style="font-size:0.55rem;color:{C_MUTED} !important;text-align:center;margin:0;
+                      letter-spacing:0.02em;">
                 TAM Capital | CMA Regulated<br>
                 Confidential - Internal Use Only
             </p>
@@ -351,14 +495,10 @@ with st.sidebar:
     )
 
 
-# --- Initialize session state ---
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "report_files" not in st.session_state:
-    st.session_state.report_files = {}
+# ==========================================================
+# HELPER FUNCTIONS — Ticker parsing, API calls, Analysis
+# ==========================================================
 
-
-# --- Helper functions ---
 def extract_ticker_from_message(message: str) -> tuple:
     """Extract stock ticker and company name from user message."""
     match = re.search(r'\((\w+(?:\.\w+)?)\)', message)
@@ -387,8 +527,93 @@ def extract_ticker_from_message(message: str) -> tuple:
     return None, None
 
 
+def extract_multiple_tickers(message: str) -> list:
+    """Extract multiple tickers from a comparison request."""
+    lower = message.lower()
+    is_compare = any(kw in lower for kw in [
+        "compare", "vs", "versus", "against", "side by side",
+        "head to head", "benchmark",
+    ])
+    if not is_compare:
+        return []
+
+    codes = re.findall(r'\b(\d{4})\b', message)
+    if len(codes) >= 2:
+        return [(resolve_ticker(code), code) for code in codes[:4]]
+
+    tickers = re.findall(r'\((\w+(?:\.\w+)?)\)', message)
+    if len(tickers) >= 2:
+        return [(resolve_ticker(t), t) for t in tickers[:4]]
+
+    upper_tickers = re.findall(r'\b([A-Z]{2,5})\b', message)
+    skip = {"THE", "FOR", "AND", "BUT", "NOT", "ALL", "TAM", "EPS", "CEO",
+            "ETF", "IPO", "ROE", "ROA", "FCF", "YOY", "QOQ", "FULL",
+            "COMPARE", "VERSUS", "SIDE", "HEAD"}
+    filtered = [t for t in upper_tickers if t not in skip]
+    if len(filtered) >= 2:
+        return [(resolve_ticker(t), t) for t in filtered[:4]]
+
+    return []
+
+
+# Saudi sector definitions
+SAUDI_SECTORS = {
+    "banks": {
+        "name": "Saudi Banking Sector",
+        "tickers": [("1120.SR", "Al Rajhi Bank"), ("1180.SR", "Al Inma Bank"),
+                    ("1010.SR", "Riyad Bank"), ("1150.SR", "Alinma Bank")],
+    },
+    "petrochemicals": {
+        "name": "Saudi Petrochemical Sector",
+        "tickers": [("2010.SR", "SABIC"), ("2020.SR", "SABIC AN"),
+                    ("2350.SR", "Saudi Kayan"), ("2060.SR", "Nat. Industrialization")],
+    },
+    "telecom": {
+        "name": "Saudi Telecom Sector",
+        "tickers": [("7010.SR", "STC"), ("7020.SR", "Etihad Etisalat"),
+                    ("7030.SR", "Zain KSA")],
+    },
+    "retail": {
+        "name": "Saudi Retail & Consumer Sector",
+        "tickers": [("4001.SR", "Petromin"), ("4200.SR", "Aldawaa"),
+                    ("3060.SR", "United Electronics"), ("2280.SR", "Almarai")],
+    },
+    "energy": {
+        "name": "Saudi Energy Sector",
+        "tickers": [("2222.SR", "Saudi Aramco"), ("4030.SR", "Bahri")],
+    },
+}
+
+
+def detect_sector_request(message: str) -> str | None:
+    """Detect if the user is asking for a sector-level analysis."""
+    lower = message.lower()
+    if not any(kw in lower for kw in [
+        "sector", "industry", "banking sector", "banks sector",
+        "petrochemical", "telecom", "retail", "energy sector",
+        "overview", "landscape",
+    ]):
+        return None
+
+    for key, info in SAUDI_SECTORS.items():
+        if key in lower or info["name"].lower().split()[1] in lower:
+            return key
+
+    if any(w in lower for w in ["bank", "financial"]):
+        return "banks"
+    if any(w in lower for w in ["petrochem", "chemical", "sabic"]):
+        return "petrochemicals"
+    if any(w in lower for w in ["telecom", "telco", "stc", "mobile"]):
+        return "telecom"
+    if any(w in lower for w in ["retail", "consumer", "food"]):
+        return "retail"
+    if any(w in lower for w in ["energy", "oil", "gas", "aramco"]):
+        return "energy"
+    return None
+
+
 def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str:
-    """Try a model with retries. Returns response text or raises on exhaustion."""
+    """Try a model with retries."""
     import time
     import random
     for attempt in range(retries):
@@ -416,12 +641,12 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str
 
 
 def call_claude(prompt: str) -> str:
-    """Call Claude API. Tries primary model, falls back to Haiku on rate limit."""
+    """Call Claude API with fallback."""
     client = anthropic.Anthropic(api_key=api_key)
     try:
         return _call_with_retries(client, MODEL, prompt)
     except anthropic.RateLimitError:
-        st.toast(f"Switching to faster model to avoid rate limits...")
+        st.toast("Switching to faster model to avoid rate limits...")
         return _call_with_retries(client, FALLBACK_MODEL, prompt)
 
 
@@ -436,19 +661,41 @@ def generate_section(section_type: str, market_data_str: str, news_str: str) -> 
     return call_claude(prompt)
 
 
+# ==========================================================
+# ANALYSIS PIPELINES
+# ==========================================================
+
+def _is_cancelled():
+    """Check if user has requested analysis cancellation."""
+    return st.session_state.get("cancel_analysis", False)
+
+
 def run_full_analysis(ticker: str, company_name: str, user_message: str, formats: list) -> dict:
-    """Run the complete analysis pipeline."""
-    results = {"sections": {}, "charts": {}, "files": {}, "sources": None}
-
-    # Initialize source collector
+    """Run the complete analysis pipeline with cancellation support."""
+    results = {"sections": {}, "charts": {}, "files": {}, "sources": None, "cancelled": False}
     collector = SourceCollector()
+    st.session_state.analysis_running = True
+    st.session_state.cancel_analysis = False
 
-    # Step 1: Fetch data
+    # --- Cancel button (persists during entire analysis) ---
+    cancel_col = st.empty()
+    with cancel_col.container():
+        if st.button("Stop Research", key="cancel_btn", type="secondary", use_container_width=True):
+            st.session_state.cancel_analysis = True
+            st.session_state.analysis_running = False
+
     with st.status("Collecting market intelligence...", expanded=True) as status:
         st.write("Fetching live market data...")
         stock_data = fetch_stock_data(ticker, collector=collector)
         if stock_data.get("name") and stock_data["name"] != ticker:
             company_name = stock_data["name"]
+
+        if _is_cancelled():
+            status.update(label="Cancelled", state="error")
+            cancel_col.empty()
+            results["cancelled"] = True
+            st.session_state.analysis_running = False
+            return results
 
         st.write("Loading price history...")
         hist = fetch_price_history(ticker, collector=collector)
@@ -466,23 +713,54 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
         dividends = fetch_dividend_history(ticker, collector=collector)
 
         market_data_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
-        status.update(label=f"Market data collected ({len(collector)} sources tracked)", state="complete")
+        status.update(label=f"Market data collected ({len(collector)} sources)", state="complete")
 
-    # Step 2: Generate charts
+    if _is_cancelled():
+        cancel_col.empty()
+        results["cancelled"] = True
+        st.session_state.analysis_running = False
+        return results
+
+    # --- Store stock_data for potential DCF use ---
+    results["stock_data"] = stock_data
+
+    # --- Interactive Plotly charts (if available) ---
+    if PLOTLY_AVAILABLE and not hist.empty:
+        with st.status("Building interactive charts...", expanded=False) as status:
+            try:
+                plotly_techs = calc_plotly_technicals(hist)
+                results["plotly_charts"] = {
+                    "candlestick": generate_candlestick_chart(hist, ticker, plotly_techs),
+                    "rsi": generate_rsi_chart(hist),
+                    "macd": generate_macd_chart(hist),
+                }
+            except Exception:
+                results["plotly_charts"] = {}
+            status.update(label="Interactive charts ready", state="complete")
+
     with st.status("Building visualizations...", expanded=False) as status:
         chart_dir = os.path.join(OUTPUT_DIR, "charts")
         charts = generate_all_charts(stock_data, technicals, hist, financials, dividends, chart_dir)
         results["charts"] = charts
         status.update(label=f"{len(charts)} charts generated", state="complete")
 
-    # Step 3: Determine which sections to generate
+    if _is_cancelled():
+        cancel_col.empty()
+        results["cancelled"] = True
+        st.session_state.analysis_running = False
+        return results
+
     section_types = get_analysis_type_from_request(user_message)
 
-    # Step 4: Generate each section
     with st.status("Running multi-framework analysis...", expanded=True) as status:
         total = len(section_types)
         failed_sections = []
         for i, section_type in enumerate(section_types):
+            # --- Check cancel before each section ---
+            if _is_cancelled():
+                st.warning(f"Research stopped after {i}/{total} sections.")
+                break
+
             config = SECTION_CONFIG.get(section_type)
             if not config:
                 continue
@@ -490,56 +768,67 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 import time as _t
                 if i > 0:
-                    _t.sleep(20)  # Space out API calls to stay within Opus rate limits
+                    _t.sleep(20)
                 content = generate_section(section_type, market_data_str, news)
                 results["sections"][config["section_key"]] = content
             except anthropic.RateLimitError:
                 failed_sections.append(config['title'])
-                st.warning(f"⏳ {config['title']} skipped due to rate limiting — the report will continue without it.")
-                _t.sleep(15)  # Extra cooldown before next call
+                st.warning(f"Skipped {config['title']} (rate limited)")
+                _t.sleep(15)
                 continue
             except Exception as e:
                 failed_sections.append(config['title'])
-                st.warning(f"⚠️ {config['title']} failed: {str(e)}")
+                st.warning(f"{config['title']} failed: {str(e)}")
                 continue
-        if failed_sections:
-            st.warning(f"⚠️ {len(failed_sections)} section(s) skipped: {', '.join(failed_sections)}. Try generating again in a minute for a complete report.")
 
-        # Executive summary
-        if results["sections"]:
-            st.write(f"[{total}/{total}] Compiling Executive Summary...")
-            all_sections_text = "\n\n---\n\n".join(
-                f"[{k}]\n{v}" for k, v in results["sections"].items()
-            )
-            exec_prompt = EXECUTIVE_SUMMARY_PROMPT.format(
-                market_data=market_data_str,
-                all_sections=all_sections_text[:8000]
-            )
-            try:
-                exec_summary = call_claude(exec_prompt)
-                if "KEY TAKEAWAYS" in exec_summary.upper():
-                    parts = re.split(r'(?i)key\s*takeaways', exec_summary, maxsplit=1)
-                    results["sections"]["executive_summary"] = parts[0].strip()
-                    results["sections"]["key_takeaways"] = "Key Takeaways" + parts[1] if len(parts) > 1 else ""
-                else:
-                    results["sections"]["executive_summary"] = exec_summary
-            except Exception as e:
-                st.warning(f"Executive summary error: {str(e)}")
+        if _is_cancelled():
+            results["cancelled"] = True
+            if results["sections"]:
+                st.info(f"Partial results available ({len(results['sections'])} sections completed).")
+            status.update(label=f"Stopped — {len(results['sections'])}/{total} sections", state="error")
+        else:
+            if failed_sections:
+                st.warning(f"{len(failed_sections)} section(s) skipped: {', '.join(failed_sections)}")
 
-        status.update(label="Analysis complete", state="complete")
+            if results["sections"]:
+                st.write(f"[{total}/{total}] Compiling Executive Summary...")
+                all_sections_text = "\n\n---\n\n".join(
+                    f"[{k}]\n{v}" for k, v in results["sections"].items()
+                )
+                exec_prompt = EXECUTIVE_SUMMARY_PROMPT.format(
+                    market_data=market_data_str,
+                    all_sections=all_sections_text[:8000]
+                )
+                try:
+                    exec_summary = call_claude(exec_prompt)
+                    if "KEY TAKEAWAYS" in exec_summary.upper():
+                        parts = re.split(r'(?i)key\s*takeaways', exec_summary, maxsplit=1)
+                        results["sections"]["executive_summary"] = parts[0].strip()
+                        results["sections"]["key_takeaways"] = "Key Takeaways" + parts[1] if len(parts) > 1 else ""
+                    else:
+                        results["sections"]["executive_summary"] = exec_summary
+                except Exception as e:
+                    st.warning(f"Executive summary error: {str(e)}")
 
-    # Step 5: Generate documents
+            status.update(label="Analysis complete", state="complete")
+
+    # --- Clean up cancel button ---
+    cancel_col.empty()
+    st.session_state.analysis_running = False
+
+    # --- Skip file generation if cancelled with no content ---
+    if results.get("cancelled") and not results["sections"]:
+        return results
+
     with st.status("Preparing deliverables...", expanded=False) as status:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-
         results["sources"] = collector
 
         if "Word (DOCX)" in formats:
             try:
                 docx_path = generate_docx_report(
                     company_name, ticker, results["sections"],
-                    charts=results["charts"], output_dir=OUTPUT_DIR,
-                    sources=collector
+                    charts=results["charts"], output_dir=OUTPUT_DIR, sources=collector
                 )
                 results["files"]["docx"] = docx_path
             except Exception as e:
@@ -549,19 +838,16 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 pdf_path = generate_pdf_report(
                     company_name, ticker, results["sections"],
-                    charts=results["charts"], output_dir=OUTPUT_DIR,
-                    sources=collector
+                    charts=results["charts"], output_dir=OUTPUT_DIR, sources=collector
                 )
                 results["files"]["pdf"] = pdf_path
             except Exception:
-                # Fallback: convert DOCX to PDF
                 docx_for_pdf = results["files"].get("docx")
                 if not docx_for_pdf:
                     try:
                         docx_for_pdf = generate_docx_report(
                             company_name, ticker, results["sections"],
-                            charts=results["charts"], output_dir=OUTPUT_DIR,
-                            sources=collector
+                            charts=results["charts"], output_dir=OUTPUT_DIR, sources=collector
                         )
                     except Exception:
                         pass
@@ -576,382 +862,1621 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             try:
                 pptx_path = generate_pptx_report(
                     company_name, ticker, results["sections"],
-                    charts=results["charts"], output_dir=OUTPUT_DIR,
-                    sources=collector
+                    charts=results["charts"], output_dir=OUTPUT_DIR, sources=collector
                 )
                 results["files"]["pptx"] = pptx_path
             except Exception as e:
                 st.warning(f"PPTX: {str(e)}")
 
-        # Save report to history for comparison
+        if "Excel (XLSX)" in formats:
+            try:
+                xlsx_path = generate_xlsx_report(
+                    company_name, ticker, results["sections"],
+                    charts=results["charts"], output_dir=OUTPUT_DIR, sources=collector
+                )
+                results["files"]["xlsx"] = xlsx_path
+            except Exception as e:
+                st.warning(f"XLSX: {str(e)}")
+
         try:
             save_report(company_name, ticker, results["sections"],
                         files=results.get("files", {}))
         except Exception:
-            pass  # Non-critical; don't block the user
+            pass
 
-        status.update(label="Reports ready for download", state="complete")
+        label = "Reports ready for download"
+        if results.get("cancelled"):
+            label = f"Partial reports generated ({len(results['sections'])} sections)"
+        status.update(label=label, state="complete")
 
     return results
 
 
-# --- Main interface ---
+def run_comparison_analysis(stocks: list, user_message: str, formats: list) -> dict:
+    """Run side-by-side comparison for multiple stocks."""
+    comparison = {"stocks": {}, "files": {}}
+    all_market_data = {}
+    collector = SourceCollector()
 
-# Show welcome screen when no messages
-if not st.session_state.messages:
-    # Header with logo
+    with st.status(f"Comparing {len(stocks)} stocks...", expanded=True) as status:
+        for ticker, name in stocks:
+            st.write(f"Fetching data for {name} ({ticker})...")
+            stock_data = fetch_stock_data(ticker, collector=collector)
+            real_name = stock_data.get("name", name)
+            hist = fetch_price_history(ticker, collector=collector)
+            technicals = calculate_technical_indicators(hist) if not hist.empty else {}
+            financials = fetch_financials(ticker, collector=collector)
+            dividends = fetch_dividend_history(ticker, collector=collector)
+            market_data_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
+            all_market_data[ticker] = {
+                "name": real_name, "data_str": market_data_str,
+                "stock_data": stock_data, "hist": hist,
+                "technicals": technicals, "financials": financials, "dividends": dividends,
+            }
+        status.update(label="Data collected for all stocks", state="complete")
+
+    with st.status("Running comparative analysis...", expanded=True) as status:
+        combined_data = "\n\n===\n\n".join(
+            f"[{info['name']} ({ticker})]\n{info['data_str']}"
+            for ticker, info in all_market_data.items()
+        )
+        stock_names = ", ".join(
+            f"{info['name']} ({ticker})" for ticker, info in all_market_data.items()
+        )
+        comparison_prompt = (
+            f"You are a senior institutional equity analyst at TAM Capital, a CMA-regulated "
+            f"asset manager in Saudi Arabia.\n\n"
+            f"Provide a detailed COMPARATIVE ANALYSIS of: {stock_names}\n\n"
+            f"Structure your response with these sections:\n"
+            f"1. **Comparative Overview** — Brief positioning of each company\n"
+            f"2. **Financial Metrics Comparison** — Side-by-side table of key metrics\n"
+            f"3. **Valuation Analysis** — Which is undervalued/overvalued and why\n"
+            f"4. **Growth Trajectory** — Revenue/earnings growth comparison\n"
+            f"5. **Risk Profile** — Comparative risk assessment\n"
+            f"6. **Investment Recommendation** — Clear ranking with rationale\n\n"
+            f"Market data:\n{combined_data[:12000]}"
+        )
+        try:
+            analysis = call_claude(comparison_prompt)
+            comparison["analysis"] = analysis
+        except Exception as e:
+            comparison["analysis"] = f"Comparison analysis error: {str(e)}"
+        status.update(label="Comparative analysis complete", state="complete")
+
+    with st.status("Building comparison charts...", expanded=False) as status:
+        for ticker, info in all_market_data.items():
+            chart_dir = os.path.join(OUTPUT_DIR, "charts", ticker.replace(".", "_"))
+            charts = generate_all_charts(
+                info["stock_data"], info["technicals"], info["hist"],
+                info["financials"], info["dividends"], chart_dir
+            )
+            comparison["stocks"][ticker] = {"name": info["name"], "charts": charts}
+        status.update(label="Charts generated", state="complete")
+
+    if any(fmt in formats for fmt in ["Word (DOCX)", "PDF", "Excel (XLSX)"]):
+        with st.status("Preparing deliverables...", expanded=False) as status:
+            os.makedirs(OUTPUT_DIR, exist_ok=True)
+            comparison_sections = {"executive_summary": comparison.get("analysis", "")}
+            combined_name = " vs ".join(info["name"] for _, info in comparison["stocks"].items())
+
+            if "Word (DOCX)" in formats:
+                try:
+                    docx_path = generate_docx_report(
+                        f"Comparison: {combined_name}", "COMPARE",
+                        comparison_sections, output_dir=OUTPUT_DIR, sources=collector
+                    )
+                    comparison["files"]["docx"] = docx_path
+                except Exception as e:
+                    st.warning(f"DOCX: {str(e)}")
+
+            if "Excel (XLSX)" in formats:
+                try:
+                    xlsx_path = generate_xlsx_report(
+                        f"Comparison: {combined_name}", "COMPARE",
+                        comparison_sections, output_dir=OUTPUT_DIR, sources=collector
+                    )
+                    comparison["files"]["xlsx"] = xlsx_path
+                except Exception as e:
+                    st.warning(f"XLSX: {str(e)}")
+
+            comparison["sources"] = collector
+            status.update(label="Reports ready", state="complete")
+
+    return comparison
+
+
+def run_sector_analysis(sector_key: str, user_message: str) -> dict:
+    """Run a sector-level overview analysis."""
+    sector = SAUDI_SECTORS[sector_key]
+    result = {"name": sector["name"], "stocks": {}, "analysis": ""}
+    collector = SourceCollector()
+
+    with st.status(f"Analyzing {sector['name']}...", expanded=True) as status:
+        all_data_parts = []
+        for ticker, name in sector["tickers"]:
+            st.write(f"Fetching {name} ({ticker})...")
+            try:
+                stock_data = fetch_stock_data(ticker, collector=collector)
+                hist = fetch_price_history(ticker, period="1y", collector=collector)
+                financials = fetch_financials(ticker, collector=collector)
+                technicals = calculate_technical_indicators(hist) if not hist.empty else {}
+                market_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
+                all_data_parts.append(f"[{name} ({ticker})]\n{market_str}")
+                result["stocks"][ticker] = {
+                    "name": stock_data.get("name", name), "data": stock_data,
+                }
+            except Exception as e:
+                st.write(f"  Skipped {name}: {str(e)}")
+
+        st.write("Searching sector news...")
+        sector_news = search_sector_news(sector["name"], collector=collector)
+        status.update(label=f"Data collected for {len(result['stocks'])} stocks", state="complete")
+
+    with st.status("Generating sector analysis...", expanded=True) as status:
+        combined_data = "\n\n===\n\n".join(all_data_parts)
+        sector_prompt = (
+            f"You are a senior institutional research analyst at TAM Capital, "
+            f"a CMA-regulated Saudi asset manager.\n\n"
+            f"Provide a comprehensive SECTOR OVERVIEW for the **{sector['name']}** "
+            f"on the Saudi Exchange (Tadawul).\n\n"
+            f"Structure your analysis:\n"
+            f"1. **Sector Overview** — Current state, size, and importance\n"
+            f"2. **Key Players Comparison** — Table comparing market cap, revenue, P/E, ROE, dividend yield\n"
+            f"3. **Sector Trends** — Growth drivers, headwinds, regulatory changes\n"
+            f"4. **Valuation Heat Map** — Which stocks are cheap/expensive relative to peers\n"
+            f"5. **Top Pick & Rationale** — Best investment opportunity in the sector\n"
+            f"6. **Sector Outlook** — 6-12 month forward view\n\n"
+            f"Recent news:\n{sector_news[:3000]}\n\n"
+            f"Financial data:\n{combined_data[:10000]}"
+        )
+        try:
+            analysis = call_claude(sector_prompt)
+            result["analysis"] = analysis
+        except Exception as e:
+            result["analysis"] = f"Sector analysis error: {str(e)}"
+
+        result["sources"] = collector
+        status.update(label="Sector analysis complete", state="complete")
+
+    return result
+
+
+# ==========================================================
+# DISPLAY HELPERS
+# ==========================================================
+
+def _display_download_buttons(files: dict, prefix: str = "dl"):
+    """Render download buttons for generated files."""
+    if not files:
+        return
+    st.markdown("---")
+    st.markdown("#### Download Reports")
+    cols = st.columns(len(files))
+    ext_labels = {
+        "docx": "Word Document", "pdf": "PDF Report",
+        "pptx": "Presentation", "xlsx": "Excel Workbook"
+    }
+    for i, (fmt, path) in enumerate(files.items()):
+        if os.path.exists(path):
+            with cols[i]:
+                with open(path, "rb") as f:
+                    st.download_button(
+                        label=f"{ext_labels.get(fmt, fmt.upper())}",
+                        data=f.read(),
+                        file_name=os.path.basename(path),
+                        mime="application/octet-stream",
+                        key=f"{prefix}_{fmt}_{datetime.now().timestamp()}"
+                    )
+
+
+def _display_sources(sources):
+    """Render sources expander."""
+    if sources and len(sources) > 0:
+        st.markdown("---")
+        with st.expander(f"Sources & References ({len(sources)} sources)"):
+            st.markdown(sources.format_for_display())
+
+
+def _display_comparison_view(old_report, new_report):
+    """Display report comparison dashboard."""
+    st.markdown("---")
+    st.markdown(
+        f"### Report Comparison\n"
+        f"**{old_report['stock_name']}** ({old_report['date_display']})  vs  "
+        f"**{new_report['stock_name']}** ({new_report['date_display']})"
+    )
+
+    metric_changes = compare_metrics(old_report["sections"], new_report["sections"])
+    text_diffs = compare_text_sections(old_report["sections"], new_report["sections"])
+    summary = build_comparison_summary(metric_changes, text_diffs)
+
+    rating_change = detect_rating_change(old_report["sections"], new_report["sections"])
+    outlook_change = detect_outlook_change(old_report["sections"], new_report["sections"])
+    if rating_change:
+        direction = "upgraded" if rating_change["is_upgrade"] else "downgraded"
+        st.warning(
+            f"Rating {direction}: **{rating_change['old_rating'].title()}** "
+            f"\u2192 **{rating_change['new_rating'].title()}**"
+        )
+    if outlook_change:
+        st.info(
+            f"Outlook changed: **{outlook_change['old_outlook'].title()}** "
+            f"\u2192 **{outlook_change['new_outlook'].title()}**"
+        )
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.metric("Improved", summary["metrics_improved"],
+                   delta=f"{summary['metrics_improved']}" if summary["metrics_improved"] else None,
+                   delta_color="normal")
+    with col2:
+        st.metric("Declined", summary["metrics_deteriorated"],
+                   delta=f"-{summary['metrics_deteriorated']}" if summary["metrics_deteriorated"] else None,
+                   delta_color="inverse")
+    with col3:
+        st.metric("Changed", summary["sections_changed"])
+    with col4:
+        largest = summary.get("largest_change")
+        if largest and largest.get("change_pct") is not None:
+            st.metric("Largest Move", largest["metric"], delta=f"{largest['change_pct']:+.1f}%")
+        else:
+            st.metric("Largest Move", "N/A")
+    with col5:
+        score = summary.get("change_score", 0)
+        score_label = "Low" if score < 25 else ("Moderate" if score < 50 else "High")
+        st.metric("Change Score", f"{score}/100", delta=score_label)
+
+    # Metric details table
+    if metric_changes:
+        st.markdown("#### Financial Metrics")
+        rows_html = ""
+        for m in metric_changes:
+            arrow = ""
+            color = C_TEXT2
+            if m["direction"] == "up":
+                arrow = "&#9650;"
+                color = C_GREEN
+            elif m["direction"] == "down":
+                arrow = "&#9660;"
+                color = C_RED
+
+            old_str = f"{m['old']:.2f}" if m["old"] is not None else "N/A"
+            new_str = f"{m['new']:.2f}" if m["new"] is not None else "N/A"
+            pct_str = f"{m['change_pct']:+.1f}%" if m["change_pct"] is not None else ""
+
+            sev = m.get("severity", "")
+            sev_colors = {"minor": C_CYAN, "moderate": C_ORANGE, "major": C_RED}
+            sev_badge = (
+                f"<span style='background:{sev_colors.get(sev, '#555')};color:white;"
+                f"padding:1px 6px;border-radius:3px;font-size:0.65em;'>{sev}</span>"
+            ) if sev and sev != "unknown" else ""
+
+            rows_html += (
+                f"<tr style='border-bottom:1px solid {C_BORDER};'>"
+                f"<td style='padding:8px 14px;font-weight:600;color:{C_TEXT};'>{m['metric']}</td>"
+                f"<td style='padding:8px 14px;text-align:right;color:{C_TEXT2};'>{old_str}</td>"
+                f"<td style='padding:8px 14px;text-align:right;color:{C_TEXT2};'>{new_str}</td>"
+                f"<td class='{'data-pulse-green' if m['direction'] == 'up' else 'data-pulse-red' if m['direction'] == 'down' else ''}'"
+                f" style='padding:8px 14px;text-align:right;color:{color};'>"
+                f"<span style='font-size:0.7em;'>{arrow}</span> {pct_str}</td>"
+                f"<td style='padding:8px 14px;text-align:center;'>{sev_badge}</td>"
+                f"</tr>"
+            )
+
+        st.markdown(
+            f"""<table style="width:100%;border-collapse:collapse;font-size:0.85rem;
+                 background:{C_CARD};border:1px solid {C_BORDER};border-radius:12px;overflow:hidden;">
+            <thead><tr style="background:rgba(34,47,98,0.15);">
+            <th style="padding:10px 14px;text-align:left;color:{C_TEXT};font-weight:600;
+                font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Metric</th>
+            <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-weight:600;
+                font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Previous</th>
+            <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-weight:600;
+                font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Current</th>
+            <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-weight:600;
+                font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Change</th>
+            <th style="padding:10px 14px;text-align:center;color:{C_TEXT};font-weight:600;
+                font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Severity</th>
+            </tr></thead>
+            <tbody>{rows_html}</tbody></table>""",
+            unsafe_allow_html=True
+        )
+
+    # Text diffs
+    if text_diffs:
+        st.markdown("#### Section Changes")
+        for section_key, diff_lines in text_diffs.items():
+            title = CMP_SECTION_TITLES.get(section_key, section_key.replace("_", " ").title())
+            with st.expander(f"{title} ({sum(1 for t,_ in diff_lines if t=='added')} added, "
+                             f"{sum(1 for t,_ in diff_lines if t=='removed')} removed)"):
+                diff_html = ""
+                for typ, text in diff_lines[:50]:
+                    text_esc = text.replace("<", "&lt;").replace(">", "&gt;")
+                    if typ == "added":
+                        diff_html += f'<div style="background:rgba(63,185,80,0.08);padding:4px 10px;margin:2px 0;border-left:2px solid {C_GREEN};font-size:0.82rem;border-radius:0 6px 6px 0;color:{C_TEXT2};">+ {text_esc}</div>'
+                    elif typ == "removed":
+                        diff_html += f'<div style="background:rgba(248,81,73,0.08);padding:4px 10px;margin:2px 0;border-left:2px solid {C_RED};font-size:0.82rem;border-radius:0 6px 6px 0;color:{C_TEXT2};">- {text_esc}</div>'
+                    else:
+                        diff_html += f'<div style="padding:4px 10px;margin:2px 0;font-size:0.82rem;color:{C_MUTED};">&nbsp; {text_esc}</div>'
+                st.markdown(diff_html, unsafe_allow_html=True)
+
+
+# ==========================================================
+# PAGE: DASHBOARD
+# ==========================================================
+
+def render_dashboard():
+    """Dashboard home — market overview + AI chat."""
+    # Page header
     if LOGO_B64:
         st.markdown(
             f"""
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 4px;">
-                <img src="data:image/png;base64,{LOGO_B64}" height="48" />
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+                <img src="data:image/png;base64,{LOGO_B64}" height="44"
+                     style="filter:brightness(0) invert(1);opacity:0.85;" />
                 <div>
-                    <h1 style="margin: 0; padding: 0; font-size: 1.8rem;">Research & Reporting Agent</h1>
+                    <h1 style="margin:0;padding:0;font-size:1.6rem;font-weight:800;
+                        letter-spacing:-0.04em;">Research Terminal</h1>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
     else:
-        st.markdown("# TAM's Research & Reporting Agent")
+        st.markdown("# TAM Capital — Research Terminal")
 
     st.markdown(
-        '<p style="color: #64748B; font-size: 1rem; margin-top: -8px;">'
-        'Institutional-grade investment research. Powered by AI.</p>',
+        f'<p style="color:{C_TEXT2};font-size:0.9rem;margin-top:-4px;">'
+        f'Institutional-grade investment research. Powered by AI.</p>',
         unsafe_allow_html=True
     )
 
     st.markdown("")
 
-    # Welcome cards
-    col1, col2, col3 = st.columns(3)
+    # --- Feature Cards ---
+    col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.markdown(
-            """
-            <div style="background: linear-gradient(135deg, #1B2A4A 0%, #243656 100%);
-                        border-radius: 14px; padding: 24px; height: 160px;">
-                <p style="color: #2EAD6D; font-size: 0.7rem; text-transform: uppercase;
-                          letter-spacing: 0.1em; margin-bottom: 8px;">Equity Analysis</p>
-                <p style="color: white; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">
-                    Full Research Reports</p>
-                <p style="color: #9EAFC0; font-size: 0.8rem; line-height: 1.4;">
-                    Goldman Sachs-style fundamentals, JPMorgan earnings, Morgan Stanley technicals</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    cards = [
+        ("Equity Analysis", "Full Research Reports",
+         "Goldman-style fundamentals, JPMorgan earnings, Morgan Stanley technicals"),
+        ("Risk Intelligence", "News & Geopolitical Impact",
+         "Real-time news assessment, war impact scenarios, stress testing"),
+        ("Portfolio Tracking", "Live P&L Dashboard",
+         "Position management, allocation metrics, rebalancing insights"),
+        ("Multi-Format Export", "TAMS-Branded Reports",
+         "Word, PDF, PowerPoint & Excel on TAM Capital letterhead"),
+    ]
 
-    with col2:
-        st.markdown(
-            """
-            <div style="background: linear-gradient(135deg, #1B2A4A 0%, #243656 100%);
-                        border-radius: 14px; padding: 24px; height: 160px;">
-                <p style="color: #2EAD6D; font-size: 0.7rem; text-transform: uppercase;
-                          letter-spacing: 0.1em; margin-bottom: 8px;">Risk Intelligence</p>
-                <p style="color: white; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">
-                    News & Geopolitical Impact</p>
-                <p style="color: #9EAFC0; font-size: 0.8rem; line-height: 1.4;">
-                    Real-time news assessment, war impact scenarios, stress testing</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col3:
-        st.markdown(
-            """
-            <div style="background: linear-gradient(135deg, #1B2A4A 0%, #243656 100%);
-                        border-radius: 14px; padding: 24px; height: 160px;">
-                <p style="color: #2EAD6D; font-size: 0.7rem; text-transform: uppercase;
-                          letter-spacing: 0.1em; margin-bottom: 8px;">Deliverables</p>
-                <p style="color: white; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">
-                    TAMS-Branded Reports</p>
-                <p style="color: #9EAFC0; font-size: 0.8rem; line-height: 1.4;">
-                    Word, PDF & PowerPoint on TAM Capital letterhead with charts</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    for col, (label, title, desc) in zip([col1, col2, col3, col4], cards):
+        with col:
+            st.markdown(
+                f"""
+                <div style="{_glass_card_style('20px', '160px')}">
+                    {_accent_label(label)}
+                    <p style="color:{C_TEXT};font-size:0.9rem;font-weight:600;margin-bottom:6px;">
+                        {title}</p>
+                    <p style="color:{C_TEXT2};font-size:0.78rem;line-height:1.5;">
+                        {desc}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     st.markdown("")
-    st.markdown(
-        '<p style="color: #94A3B8; font-size: 0.85rem; text-align: center;">'
-        'Type a stock name or ticker below to begin analysis</p>',
-        unsafe_allow_html=True
-    )
 
-else:
-    # Compact header when in conversation
-    if LOGO_B64:
+    # --- Morning Brief Widget ---
+    if MORNING_BRIEF_AVAILABLE:
+        user_name = "Analyst"
+        if AUTH_AVAILABLE and is_authenticated():
+            u = get_current_user()
+            if u:
+                user_name = u.get("full_name", u.get("email", "Analyst")).split()[0]
+        today_str = datetime.now().strftime("%A, %B %d, %Y")
         st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 12px;
-                        border-bottom: 1px solid #E2E8F0;">
-                <img src="data:image/png;base64,{LOGO_B64}" height="32" />
-                <span style="color: #1B2A4A; font-size: 1rem; font-weight: 600;">
-                    Research & Reporting Agent</span>
-            </div>
-            """,
+            f"""<div style="{_glass_card_style('20px')}margin-bottom:20px;
+                border-left:3px solid {C_ACCENT};">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div style="width:10px;height:10px;border-radius:50%;background:{ACCENT_GRADIENT};
+                         box-shadow:0 0 10px {C_ACCENT};"></div>
+                    <span style="color:{C_TEXT};font-weight:700;font-size:1rem;">
+                        Good morning, {user_name}</span>
+                </div>
+                <p style="color:{C_TEXT2};font-size:0.85rem;margin-bottom:10px;">
+                    {today_str} &mdash; Here's your market brief</p>
+            </div>""",
             unsafe_allow_html=True
         )
 
-# Display chat history
-for msg_idx, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-        if msg["role"] == "assistant" and "files" in msg:
-            cols = st.columns(len(msg["files"]))
-            for i, (fmt, path) in enumerate(msg["files"].items()):
-                if os.path.exists(path):
-                    with cols[i]:
-                        with open(path, "rb") as f:
-                            st.download_button(
-                                label=f"Download {fmt.upper()}",
-                                data=f.read(),
-                                file_name=os.path.basename(path),
-                                mime="application/octet-stream",
-                                key=f"hist_dl_{fmt}_{msg_idx}_{i}"
+        watched_tickers = get_all_watched_tickers()
+        if watched_tickers:
+            with st.expander("Generate Morning Brief", expanded=False):
+                if st.button("Generate Today's Brief", key="gen_morning_brief",
+                             use_container_width=True):
+                    with st.spinner("Generating your morning brief..."):
+                        try:
+                            brief = generate_morning_brief(
+                                watched_tickers[:10], api_key, MODEL
                             )
+                            brief_html = format_brief_for_display(brief)
+                            st.markdown(brief_html, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.warning(f"Could not generate brief: {str(e)}")
 
-# --- Comparison display ---
-compare_request = st.session_state.pop("compare_request", None)
-if compare_request:
-    old_id, new_id = compare_request
-    old_report = load_report(old_id)
-    new_report = load_report(new_id)
+    # --- Smart Suggestions ---
+    if RECOMMENDATIONS_AVAILABLE:
+        try:
+            user_id = None
+            if AUTH_AVAILABLE and is_authenticated():
+                u = get_current_user()
+                if u:
+                    user_id = u.get("id")
+            suggestions = get_smart_suggestions(user_id, max_suggestions=3)
+            if suggestions:
+                suggestions_html = generate_suggestions_html(suggestions)
+                st.markdown(suggestions_html, unsafe_allow_html=True)
+        except Exception:
+            pass
 
-    if old_report and new_report:
-        st.markdown("---")
+    # --- Two-column: AI Chat + Watchlist/Recent ---
+    chat_col, side_col = st.columns([3, 1])
+
+    with chat_col:
         st.markdown(
-            f"### Report Comparison\n"
-            f"**{old_report['stock_name']}** ({old_report['date_display']})  vs  "
-            f"**{new_report['stock_name']}** ({new_report['date_display']})"
+            f"""<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:{ACCENT_GRADIENT};
+                     box-shadow:0 0 8px {C_ACCENT};"></div>
+                <span style="color:{C_TEXT};font-weight:600;font-size:1rem;">AI Research Assistant</span>
+            </div>""",
+            unsafe_allow_html=True
         )
 
-        metric_changes = compare_metrics(old_report["sections"], new_report["sections"])
-        text_diffs = compare_text_sections(old_report["sections"], new_report["sections"])
-        summary = build_comparison_summary(metric_changes, text_diffs)
+        # Chat history
+        for msg_idx, msg in enumerate(st.session_state.messages):
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg["role"] == "assistant" and "files" in msg:
+                    _display_download_buttons(msg["files"], f"hist_{msg_idx}")
 
-        # Rating & outlook change alerts
-        rating_change = detect_rating_change(old_report["sections"], new_report["sections"])
-        outlook_change = detect_outlook_change(old_report["sections"], new_report["sections"])
-        if rating_change:
-            direction = "upgraded" if rating_change["is_upgrade"] else "downgraded"
-            st.warning(
-                f"Rating {direction}: **{rating_change['old_rating'].title()}** "
-                f"\u2192 **{rating_change['new_rating'].title()}**"
+        # Comparison display
+        compare_request = st.session_state.pop("compare_request", None)
+        if compare_request:
+            old_id, new_id = compare_request
+            old_report = load_report(old_id)
+            new_report = load_report(new_id)
+            if old_report and new_report:
+                _display_comparison_view(old_report, new_report)
+
+        # Quick prompt from sidebar
+        quick_prompt = st.session_state.pop("quick_prompt", None)
+
+        # Preferences toggle + Chat input
+        pref_col1, pref_col2 = st.columns([5, 1])
+        with pref_col2:
+            if st.button("Customize", key="dash_pref_toggle",
+                          help="Set analysis preferences before running"):
+                st.session_state.show_preferences = not st.session_state.show_preferences
+                st.rerun()
+
+        if st.session_state.show_preferences:
+            _render_preferences_panel()
+
+        user_input = st.chat_input("Ask about any stock, sector, or market topic...")
+        prompt = quick_prompt or user_input
+
+        if prompt:
+            _handle_user_prompt(prompt)
+
+    with side_col:
+        # Watchlist quick access
+        st.markdown(
+            f"""<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                <span style="color:{C_TEXT};font-weight:600;font-size:0.85rem;">Quick Research</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+        wl_list = get_watchlists()
+        if not wl_list:
+            try:
+                default_wl = create_watchlist("My Watchlist", "Default watchlist")
+                for t, n in [("2020", "SABIC AN"), ("2222", "Aramco"),
+                             ("1120", "Al Rajhi"), ("7010", "STC")]:
+                    add_ticker(default_wl["id"], resolve_ticker(t), n)
+            except Exception:
+                pass
+            wl_list = get_watchlists()
+
+        if wl_list:
+            active_wl = get_default_watchlist()
+            if active_wl and active_wl.get("items"):
+                for idx, item in enumerate(active_wl["items"][:8]):
+                    if st.button(f"{item['name']}", key=f"dash_wl_{idx}", use_container_width=True):
+                        st.session_state["quick_prompt"] = (
+                            f"Full report on {item['name']} ({item['ticker']})"
+                        )
+                        st.rerun()
+
+        # Sector quick links
+        st.markdown("")
+        st.markdown(
+            f'<p style="color:{C_MUTED};font-size:0.6rem;text-transform:uppercase;'
+            f'letter-spacing:0.15em;margin-bottom:6px;font-weight:600;">Sectors</p>',
+            unsafe_allow_html=True
+        )
+        for key, info in list(SAUDI_SECTORS.items())[:5]:
+            if st.button(info["name"].replace("Saudi ", ""), key=f"dash_sec_{key}", use_container_width=True):
+                st.session_state.current_page = "sectors"
+                st.session_state["sector_prompt"] = f"sector overview {key}"
+                st.rerun()
+
+        # Report history
+        st.markdown("")
+        saved_reports = list_reports()
+        if saved_reports:
+            st.markdown(
+                f'<p style="color:{C_MUTED};font-size:0.6rem;text-transform:uppercase;'
+                f'letter-spacing:0.15em;margin-bottom:6px;font-weight:600;">Recent Reports</p>',
+                unsafe_allow_html=True
             )
-        if outlook_change:
-            st.info(
-                f"Outlook changed: **{outlook_change['old_outlook'].title()}** "
-                f"\u2192 **{outlook_change['new_outlook'].title()}**"
-            )
+            for r in saved_reports[:5]:
+                ver = f"v{r['version']}" if r.get("version") else ""
+                st.markdown(
+                    f'<div style="font-size:0.78rem;margin-bottom:6px;padding:6px 10px;'
+                    f'background:{C_GLASS};border-radius:8px;border:1px solid {C_BORDER};">'
+                    f'<span style="color:{C_TEXT};font-weight:500;">{r["stock_name"]}</span> '
+                    f'<span style="color:{C_ACCENT};font-size:0.7rem;font-weight:600;">{ver}</span>'
+                    f'<br/><span style="color:{C_MUTED};font-size:0.65rem;">{r["date_display"]}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
-        # Summary dashboard
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.metric("Improved", summary["metrics_improved"],
-                       delta=f"{summary['metrics_improved']}" if summary["metrics_improved"] else None,
-                       delta_color="normal")
-        with col2:
-            st.metric("Declined", summary["metrics_deteriorated"],
-                       delta=f"-{summary['metrics_deteriorated']}" if summary["metrics_deteriorated"] else None,
-                       delta_color="inverse")
-        with col3:
-            st.metric("Sections Changed", summary["sections_changed"])
-        with col4:
-            largest = summary.get("largest_change")
-            if largest and largest.get("change_pct") is not None:
-                st.metric("Largest Move",
-                           largest["metric"],
-                           delta=f"{largest['change_pct']:+.1f}%")
-            else:
-                st.metric("Largest Move", "N/A")
-        with col5:
-            score = summary.get("change_score", 0)
-            score_label = "Low" if score < 25 else ("Moderate" if score < 50 else "High")
-            st.metric("Change Score", f"{score}/100", delta=score_label)
+            # Compare
+            if len(saved_reports) >= 2:
+                with st.expander("Compare Reports"):
+                    report_labels = {
+                        r["id"]: f"{'v' + str(r['version']) + ' ' if r.get('version') else ''}"
+                                 f"{r['stock_name']} - {r['date_display']}"
+                        for r in saved_reports
+                    }
+                    report_ids = list(report_labels.keys())
+                    cmp_old = st.selectbox("Older", report_ids,
+                                           format_func=lambda x: report_labels[x],
+                                           key="cmp_old", index=min(1, len(report_ids) - 1))
+                    cmp_new = st.selectbox("Newer", report_ids,
+                                           format_func=lambda x: report_labels[x],
+                                           key="cmp_new", index=0)
+                    if st.button("Compare", key="cmp_btn", use_container_width=True):
+                        st.session_state["compare_request"] = (cmp_old, cmp_new)
+                        st.rerun()
 
-        # Metric details table
-        if metric_changes:
-            st.markdown("#### Financial Metrics")
+
+# ==========================================================
+# PAGE: RESEARCH (Dedicated chat-first page)
+# ==========================================================
+
+def render_research():
+    """Full research chat interface."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;
+            padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <div style="width:10px;height:10px;border-radius:50%;background:{ACCENT_GRADIENT};
+                 box-shadow:0 0 10px {C_ACCENT};"></div>
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">AI Research Assistant</span>
+            <span style="color:{C_MUTED};font-size:0.8rem;margin-left:auto;">
+                Powered by Claude</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    # Chat history
+    for msg_idx, msg in enumerate(st.session_state.messages):
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+            if msg["role"] == "assistant" and "files" in msg:
+                _display_download_buttons(msg["files"], f"res_{msg_idx}")
+
+    # Comparison display
+    compare_request = st.session_state.pop("compare_request", None)
+    if compare_request:
+        old_id, new_id = compare_request
+        old_report = load_report(old_id)
+        new_report = load_report(new_id)
+        if old_report and new_report:
+            _display_comparison_view(old_report, new_report)
+
+    # Preferences toggle
+    res_pref_col1, res_pref_col2 = st.columns([5, 1])
+    with res_pref_col2:
+        if st.button("Customize", key="res_pref_toggle",
+                      help="Set analysis preferences before running"):
+            st.session_state.show_preferences = not st.session_state.show_preferences
+            st.rerun()
+
+    if st.session_state.show_preferences:
+        _render_preferences_panel()
+
+    quick_prompt = st.session_state.pop("quick_prompt", None)
+    user_input = st.chat_input("Enter stock name, ticker, or question...")
+    prompt = quick_prompt or user_input
+
+    if prompt:
+        _handle_user_prompt(prompt)
+
+
+# ==========================================================
+# PAGE: PORTFOLIO
+# ==========================================================
+
+def render_portfolio():
+    """Portfolio dashboard with live metrics."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">Portfolio Dashboard</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    positions = get_positions()
+
+    if not positions:
+        st.markdown(
+            f"""<div style="{_glass_card_style('32px')};text-align:center;">
+                <p style="color:{C_TEXT};font-size:1rem;font-weight:600;margin-bottom:8px;">
+                    No positions yet</p>
+                <p style="color:{C_TEXT2};font-size:0.85rem;">
+                    Add positions from the sidebar to start tracking your portfolio.</p>
+            </div>""",
+            unsafe_allow_html=True
+        )
+    else:
+        # Fetch live prices
+        live_prices = {}
+        with st.status("Fetching live prices...", expanded=False) as status:
+            for pos in positions:
+                try:
+                    sd = fetch_stock_data(pos["ticker"])
+                    price = sd.get("price", sd.get("regularMarketPrice", pos["cost_basis"]))
+                    live_prices[pos["ticker"]] = price
+                except Exception:
+                    live_prices[pos["ticker"]] = pos["cost_basis"]
+            status.update(label="Prices updated", state="complete")
+
+        metrics = calculate_portfolio_metrics(positions, live_prices)
+        pnl_color = C_GREEN if metrics["total_pnl"] >= 0 else C_RED
+        pnl_sign = "+" if metrics["total_pnl"] >= 0 else ""
+
+        # Summary metrics row
+        m_cols = st.columns(4)
+        with m_cols[0]:
+            st.metric("Total Value", f"SAR {metrics['total_value']:,.0f}")
+        with m_cols[1]:
+            st.metric("Total Cost", f"SAR {metrics['total_cost']:,.0f}")
+        with m_cols[2]:
+            st.metric("Total P&L", f"SAR {metrics['total_pnl']:,.0f}",
+                      delta=f"{pnl_sign}{metrics['total_pnl_pct']:.1f}%")
+        with m_cols[3]:
+            st.metric("Positions", str(len(positions)))
+
+        st.markdown("")
+
+        # Positions table
+        if metrics["positions"]:
             rows_html = ""
-            for m in metric_changes:
-                arrow = ""
-                color = "#4A4A4A"
-                if m["direction"] == "up":
-                    arrow = "&#9650;"
-                    color = "#2EAD6D"
-                elif m["direction"] == "down":
-                    arrow = "&#9660;"
-                    color = "#D32F2F"
-
-                old_str = f"{m['old']:.2f}" if m["old"] is not None else "N/A"
-                new_str = f"{m['new']:.2f}" if m["new"] is not None else "N/A"
-                pct_str = f"{m['change_pct']:+.1f}%" if m["change_pct"] is not None else ""
-
-                sev = m.get("severity", "")
-                sev_colors = {"minor": "#6CB9B6", "moderate": "#FF9800", "major": "#D32F2F"}
-                sev_badge = (
-                    f"<span style='background:{sev_colors.get(sev, '#B1B3B6')};color:white;"
-                    f"padding:1px 6px;border-radius:3px;font-size:0.7em;'>{sev}</span>"
-                ) if sev and sev != "unknown" else ""
-
+            for p in metrics["positions"]:
+                p_color = C_GREEN if p["pnl"] >= 0 else C_RED
+                p_sign = "+" if p["pnl"] >= 0 else ""
                 rows_html += (
-                    f"<tr>"
-                    f"<td style='padding:6px 12px;font-weight:600;color:#222F62;'>{m['metric']}</td>"
-                    f"<td style='padding:6px 12px;text-align:right;'>{old_str}</td>"
-                    f"<td style='padding:6px 12px;text-align:right;'>{new_str}</td>"
-                    f"<td style='padding:6px 12px;text-align:right;color:{color};'>"
-                    f"<span style='font-size:0.7em;'>{arrow}</span> {pct_str}</td>"
-                    f"<td style='padding:6px 12px;text-align:center;'>{sev_badge}</td>"
+                    f"<tr style='border-bottom:1px solid {C_BORDER};'>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT};font-weight:500;'>{p['name']}</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};'>{p['ticker']}</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};text-align:right;'>{p['shares']:.0f}</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};text-align:right;'>{p['cost_basis']:.2f}</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};text-align:right;'>{p['current_price']:.2f}</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};text-align:right;'>{p['market_value']:,.0f}</td>"
+                    f"<td style='padding:10px 14px;color:{p_color};text-align:right;font-weight:600;'>"
+                    f"{p_sign}{p['pnl']:,.0f} ({p_sign}{p['pnl_pct']:.1f}%)</td>"
+                    f"<td style='padding:10px 14px;color:{C_TEXT2};text-align:right;'>{p['weight']:.1f}%</td>"
                     f"</tr>"
                 )
 
             st.markdown(
-                f"""<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
-                <thead><tr style="background:#222F62;color:white;">
-                <th style="padding:8px 12px;text-align:left;">Metric</th>
-                <th style="padding:8px 12px;text-align:right;">Previous</th>
-                <th style="padding:8px 12px;text-align:right;">Current</th>
-                <th style="padding:8px 12px;text-align:right;">Change</th>
-                <th style="padding:8px 12px;text-align:center;">Severity</th>
+                f"""<table style="width:100%;border-collapse:collapse;font-size:0.85rem;
+                     background:{C_CARD};border:1px solid {C_BORDER};border-radius:14px;overflow:hidden;">
+                <thead><tr style="background:rgba(34,47,98,0.15);">
+                <th style="padding:10px 14px;text-align:left;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Name</th>
+                <th style="padding:10px 14px;text-align:left;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Ticker</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Shares</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Cost</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Price</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Value</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">P&L</th>
+                <th style="padding:10px 14px;text-align:right;color:{C_TEXT};font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;">Weight</th>
                 </tr></thead>
                 <tbody>{rows_html}</tbody></table>""",
                 unsafe_allow_html=True
             )
 
-        # Text diffs
-        if text_diffs:
-            st.markdown("#### Section Changes")
-            for section_key, diff_lines in text_diffs.items():
-                title = CMP_SECTION_TITLES.get(section_key, section_key.replace("_", " ").title())
-                with st.expander(f"{title} ({sum(1 for t,_ in diff_lines if t=='added')} added, "
-                                 f"{sum(1 for t,_ in diff_lines if t=='removed')} removed)"):
-                    diff_html = ""
-                    for typ, text in diff_lines[:50]:
-                        text_esc = text.replace("<", "&lt;").replace(">", "&gt;")
-                        if typ == "added":
-                            diff_html += f'<div style="background:#E6F4EA;padding:2px 8px;margin:1px 0;border-left:3px solid #2EAD6D;font-size:0.85rem;">+ {text_esc}</div>'
-                        elif typ == "removed":
-                            diff_html += f'<div style="background:#FCE8E6;padding:2px 8px;margin:1px 0;border-left:3px solid #D32F2F;font-size:0.85rem;">- {text_esc}</div>'
-                        else:
-                            diff_html += f'<div style="padding:2px 8px;margin:1px 0;font-size:0.85rem;color:#666;">&nbsp; {text_esc}</div>'
-                    st.markdown(diff_html, unsafe_allow_html=True)
+        # AI Commentary
+        st.markdown("")
+        if st.button("Generate AI Portfolio Commentary", key="port_commentary_btn", use_container_width=False):
+            with st.status("Analyzing portfolio...", expanded=True) as status:
+                portfolio_str = "\n".join(
+                    f"{p['name']} ({p['ticker']}): {p['shares']:.0f} shares, "
+                    f"cost {p['cost_basis']:.2f}, current {p['current_price']:.2f}, "
+                    f"P&L {p['pnl']:+,.0f} ({p['pnl_pct']:+.1f}%), weight {p['weight']:.1f}%"
+                    for p in metrics["positions"]
+                )
+                try:
+                    commentary = call_claude(
+                        f"You are a senior portfolio manager at TAM Capital.\n"
+                        f"Provide a brief portfolio review and recommendations:\n\n"
+                        f"Total Value: SAR {metrics['total_value']:,.0f}\n"
+                        f"Total P&L: SAR {metrics['total_pnl']:,.0f} ({metrics['total_pnl_pct']:+.1f}%)\n\n"
+                        f"Positions:\n{portfolio_str}\n\n"
+                        f"Cover: concentration risk, rebalancing needs, and action items."
+                    )
+                    status.update(label="Complete", state="complete")
+                    st.markdown("---")
+                    st.markdown("#### Portfolio Commentary")
+                    st.markdown(commentary[:2000])
+                except Exception as e:
+                    st.warning(f"Commentary error: {str(e)}")
 
+    # --- Risk Analytics ---
+    if RISK_AVAILABLE and positions and len(positions) >= 1:
         st.markdown("---")
+        st.markdown("#### Risk Analytics")
+        with st.expander("Portfolio Risk Metrics", expanded=False):
+            with st.spinner("Calculating risk metrics..."):
+                try:
+                    # Fetch 1-year price history for each position
+                    price_hist = {}
+                    for pos in positions:
+                        try:
+                            h = fetch_price_history(pos["ticker"], period="1y")
+                            if not h.empty:
+                                price_hist[pos["ticker"]] = h
+                        except Exception:
+                            pass
 
-# Handle quick prompts from sidebar
-quick_prompt = st.session_state.pop("quick_prompt", None)
+                    if price_hist:
+                        risk_data = calculate_portfolio_risk(positions, price_hist)
+                        risk_charts = generate_risk_charts(risk_data, positions)
 
-# Chat input
-user_input = st.chat_input("Enter stock name or ticker (e.g. SABIC Agri-Nutrients 2020, Aramco 2222, AAPL)")
+                        # Key metrics row
+                        rc1, rc2, rc3, rc4 = st.columns(4)
+                        with rc1:
+                            var_val = risk_data.get("var_95_1day", 0)
+                            st.metric("1-Day VaR (95%)", f"{var_val*100:.2f}%")
+                        with rc2:
+                            sharpe = risk_data.get("sharpe_ratio", 0)
+                            st.metric("Sharpe Ratio", f"{sharpe:.2f}")
+                        with rc3:
+                            mdd = risk_data.get("max_drawdown", 0)
+                            st.metric("Max Drawdown", f"{mdd*100:.1f}%")
+                        with rc4:
+                            beta = risk_data.get("portfolio_beta", 1)
+                            st.metric("Portfolio Beta", f"{beta:.2f}")
 
-# Use quick prompt if clicked, otherwise use chat input
-prompt = quick_prompt or user_input
+                        # Charts in tabs
+                        risk_tabs = st.tabs(["Drawdown", "Correlation", "Return Distribution", "Risk vs Return"])
+                        chart_keys = ["drawdown", "correlation", "var_distribution", "risk_return"]
+                        for tab, key in zip(risk_tabs, chart_keys):
+                            with tab:
+                                if key in risk_charts:
+                                    st.plotly_chart(risk_charts[key], use_container_width=True,
+                                                    key=f"risk_{key}_{id(risk_charts[key])}")
+                    else:
+                        st.info("Not enough price history to calculate risk metrics.")
+                except Exception as e:
+                    st.warning(f"Risk calculation error: {str(e)}")
 
-if prompt:
-    # Add user message
+    # Manage positions
+    st.markdown("---")
+    st.markdown("#### Manage Positions")
+    add_cols = st.columns(4)
+    with add_cols[0]:
+        p_ticker = st.text_input("Ticker", placeholder="e.g. 2222", key="port_page_ticker")
+    with add_cols[1]:
+        p_shares = st.number_input("Shares", min_value=0.0, step=1.0, key="port_page_shares")
+    with add_cols[2]:
+        p_cost = st.number_input("Cost/share", min_value=0.0, step=0.01, key="port_page_cost")
+    with add_cols[3]:
+        st.markdown("<br/>", unsafe_allow_html=True)
+        if st.button("Add Position", key="port_page_add_btn", use_container_width=True):
+            if p_ticker and p_shares > 0 and p_cost > 0:
+                resolved = resolve_ticker(p_ticker.strip())
+                add_position(resolved, p_ticker.strip().upper(), p_shares, p_cost)
+                st.rerun()
+
+    if positions:
+        rm_cols = st.columns([3, 1])
+        with rm_cols[0]:
+            rm_pos = st.selectbox(
+                "Remove a position",
+                [(p["id"], f"{p['name']} ({p['shares']:.0f} shares)") for p in positions],
+                format_func=lambda x: x[1],
+                key="port_page_rm_select",
+            )
+        with rm_cols[1]:
+            st.markdown("<br/>", unsafe_allow_html=True)
+            if st.button("Remove", key="port_page_rm_btn", use_container_width=True):
+                remove_position(rm_pos[0])
+                st.rerun()
+
+
+# ==========================================================
+# PAGE: SECTORS
+# ==========================================================
+
+def render_sectors():
+    """Sector overview with drill-down."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">Saudi Market Sectors</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    # Sector cards grid
+    sector_items = list(SAUDI_SECTORS.items())
+    row1 = sector_items[:3]
+    row2 = sector_items[3:]
+
+    for row in [row1, row2]:
+        cols = st.columns(len(row) if row else 1)
+        for col, (key, info) in zip(cols, row):
+            with col:
+                num_stocks = len(info["tickers"])
+                ticker_names = ", ".join(name for _, name in info["tickers"][:3])
+                st.markdown(
+                    f"""<div style="{_glass_card_style('20px', '140px')}">
+                        {_accent_label(f"{num_stocks} stocks")}
+                        <p style="color:{C_TEXT};font-size:0.95rem;font-weight:600;margin-bottom:6px;">
+                            {info['name'].replace('Saudi ', '')}</p>
+                        <p style="color:{C_TEXT2};font-size:0.75rem;line-height:1.4;">
+                            {ticker_names}</p>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+                if st.button(f"Analyze {key.title()}", key=f"sec_btn_{key}", use_container_width=True):
+                    st.session_state["sector_prompt"] = f"sector overview {key}"
+                    st.rerun()
+
+    # Handle sector analysis request
+    sector_prompt = st.session_state.pop("sector_prompt", None)
+    if sector_prompt:
+        sector_key = detect_sector_request(sector_prompt)
+        if sector_key:
+            st.markdown("---")
+            try:
+                result = run_sector_analysis(sector_key, sector_prompt)
+                analysis = result.get("analysis", "")
+                if analysis:
+                    st.markdown(f"#### {result['name']}")
+                    st.markdown(analysis[:4000])
+                _display_sources(result.get("sources"))
+            except Exception as e:
+                st.error(f"Sector analysis error: {str(e)}")
+
+
+# ==========================================================
+# PAGE: COMPARISON
+# ==========================================================
+
+def render_comparison():
+    """Multi-stock comparison tool."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">Stock Comparison</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<p style="color:{C_TEXT2};font-size:0.9rem;margin-bottom:16px;">'
+        f'Compare multiple stocks side by side. Enter tickers separated by commas or use '
+        f'"vs" (e.g., "Compare 2222 vs 1120 vs 7010").</p>',
+        unsafe_allow_html=True
+    )
+
+    compare_input = st.text_input(
+        "Enter comparison",
+        placeholder='e.g. "Compare 2222 vs 1120" or "Aramco vs Al Rajhi"',
+        key="cmp_page_input"
+    )
+
+    if st.button("Run Comparison", key="cmp_page_btn", use_container_width=False):
+        if compare_input:
+            # Force comparison detection
+            query = compare_input if "compare" in compare_input.lower() else f"Compare {compare_input}"
+            multi_stocks = extract_multiple_tickers(query)
+            if multi_stocks:
+                stock_labels = ", ".join(f"**{name}** `{ticker}`" for ticker, name in multi_stocks)
+                st.markdown(f"Comparing: {stock_labels}")
+
+                try:
+                    results = run_comparison_analysis(multi_stocks, query, output_format)
+                    analysis = results.get("analysis", "")
+                    if analysis:
+                        st.markdown("---")
+                        st.markdown("#### Comparative Analysis")
+                        st.markdown(analysis[:4000])
+
+                    for ticker_key, stock_info in results.get("stocks", {}).items():
+                        if stock_info.get("charts"):
+                            st.markdown("---")
+                            st.markdown(f"##### {stock_info['name']} Charts")
+                            chart_cols = st.columns(min(len(stock_info["charts"]), 2))
+                            for i, (name, path) in enumerate(stock_info["charts"].items()):
+                                if os.path.exists(path):
+                                    with chart_cols[i % 2]:
+                                        st.image(path, caption=name.replace("_", " ").title())
+
+                    _display_download_buttons(results.get("files", {}), "cmp_page")
+                    _display_sources(results.get("sources"))
+
+                except Exception as e:
+                    st.error(f"Comparison error: {str(e)}")
+            else:
+                st.warning("Please enter at least 2 tickers to compare.")
+
+    # Quick comparisons
+    st.markdown("---")
+    st.markdown("#### Quick Comparisons")
+    quick_cmps = [
+        ("Banks", "Compare 1120 vs 1180 vs 1010"),
+        ("Telecom", "Compare 7010 vs 7020 vs 7030"),
+        ("Energy", "Compare 2222 vs 2010 vs 2020"),
+    ]
+    qcols = st.columns(len(quick_cmps))
+    for col, (label, query) in zip(qcols, quick_cmps):
+        with col:
+            if st.button(f"{label} Comparison", key=f"qcmp_{label}", use_container_width=True):
+                st.session_state["cmp_page_auto"] = query
+                st.rerun()
+
+    auto_query = st.session_state.pop("cmp_page_auto", None)
+    if auto_query:
+        multi_stocks = extract_multiple_tickers(auto_query)
+        if multi_stocks:
+            stock_labels = ", ".join(f"**{name}** `{ticker}`" for ticker, name in multi_stocks)
+            st.markdown(f"Comparing: {stock_labels}")
+            try:
+                results = run_comparison_analysis(multi_stocks, auto_query, output_format)
+                analysis = results.get("analysis", "")
+                if analysis:
+                    st.markdown("---")
+                    st.markdown("#### Comparative Analysis")
+                    st.markdown(analysis[:4000])
+
+                for ticker_key, stock_info in results.get("stocks", {}).items():
+                    if stock_info.get("charts"):
+                        st.markdown("---")
+                        st.markdown(f"##### {stock_info['name']} Charts")
+                        chart_cols = st.columns(min(len(stock_info["charts"]), 2))
+                        for i, (name, path) in enumerate(stock_info["charts"].items()):
+                            if os.path.exists(path):
+                                with chart_cols[i % 2]:
+                                    st.image(path, caption=name.replace("_", " ").title())
+
+                _display_download_buttons(results.get("files", {}), "cmp_auto")
+                _display_sources(results.get("sources"))
+            except Exception as e:
+                st.error(f"Comparison error: {str(e)}")
+
+
+# ==========================================================
+# PAGE: WATCHLIST
+# ==========================================================
+
+def render_watchlist():
+    """Watchlist management page."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">Watchlist</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    wl_list = get_watchlists()
+    if not wl_list:
+        try:
+            create_watchlist("My Watchlist", "Default watchlist")
+            for t, n in [("2020", "SABIC AN"), ("2222", "Aramco"),
+                         ("1120", "Al Rajhi"), ("7010", "STC")]:
+                add_ticker(get_default_watchlist()["id"], resolve_ticker(t), n)
+        except Exception:
+            pass
+        wl_list = get_watchlists()
+
+    active_wl = get_default_watchlist()
+    if active_wl and active_wl.get("items"):
+        items = active_wl["items"]
+
+        # Watchlist cards
+        cols_per_row = 3
+        for row_start in range(0, len(items), cols_per_row):
+            row_items = items[row_start:row_start + cols_per_row]
+            cols = st.columns(cols_per_row)
+            for i, item in enumerate(row_items):
+                with cols[i]:
+                    st.markdown(
+                        f"""<div style="{_glass_card_style('16px')}">
+                            <p style="color:{C_TEXT};font-weight:600;font-size:0.95rem;margin-bottom:2px;">
+                                {item['name']}</p>
+                            <p style="color:{C_MUTED};font-size:0.75rem;">{item['ticker']}</p>
+                        </div>""",
+                        unsafe_allow_html=True
+                    )
+                    if st.button(f"Analyze", key=f"wl_page_{row_start}_{i}", use_container_width=True):
+                        st.session_state.current_page = "research"
+                        st.session_state["quick_prompt"] = (
+                            f"Full report on {item['name']} ({item['ticker']})"
+                        )
+                        st.rerun()
+
+    # Add/remove controls
+    st.markdown("---")
+    st.markdown("#### Manage Watchlist")
+    add_col, rm_col = st.columns(2)
+    with add_col:
+        new_ticker = st.text_input("Add ticker", key="wl_page_add", placeholder="e.g. 2222")
+        if st.button("Add", key="wl_page_add_btn", use_container_width=True) and new_ticker:
+            try:
+                if active_wl:
+                    resolved = resolve_ticker(new_ticker.strip())
+                    add_ticker(active_wl["id"], resolved, new_ticker.strip().upper())
+                    st.rerun()
+            except ValueError as e:
+                st.warning(str(e))
+    with rm_col:
+        if active_wl and active_wl.get("items"):
+            rm_choice = st.selectbox(
+                "Remove ticker",
+                [i["ticker"] for i in active_wl["items"]],
+                key="wl_page_rm_select"
+            )
+            if st.button("Remove", key="wl_page_rm_btn", use_container_width=True):
+                remove_ticker(active_wl["id"], rm_choice)
+                st.rerun()
+
+    # --- Alert Rules ---
+    if ALERT_RULES_AVAILABLE:
+        st.markdown("---")
+        st.markdown(
+            f"""<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <span style="color:{C_TEXT};font-weight:700;font-size:1rem;">
+                    \u26A0 Quick Alert Rules</span>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        with st.expander("Configure Alert Rules", expanded=False):
+            render_alert_rules_panel()
+
+
+# ==========================================================
+# PROMPT HANDLER — Routes user input to correct pipeline
+# ==========================================================
+
+def _render_preferences_panel():
+    """Render the pre-analysis preferences panel as a glass card."""
+    prefs = st.session_state.analysis_preferences
+    st.markdown(
+        f"""<div style="{_glass_card_style('20px')};margin-bottom:16px;">
+            <div style="font-size:0.85rem;font-weight:600;color:{C_TEXT};margin-bottom:12px;">
+                Customize your analysis</div>
+            <div style="font-size:0.72rem;color:{C_TEXT2};margin-bottom:8px;">
+                Set preferences below, or click <b>Quick Start</b> to use defaults.</div>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        prefs["horizon"] = st.selectbox(
+            "Investment Horizon",
+            ["Short-term (< 3 months)", "Medium-term (6-12 months)", "Long-term (1-3 years)"],
+            index=1, key="pref_horizon"
+        )
+        prefs["language"] = st.selectbox(
+            "Report Language",
+            ["English", "Arabic", "Both (English + Arabic)"],
+            index=0, key="pref_lang"
+        )
+    with col2:
+        prefs["focus"] = st.multiselect(
+            "Analysis Focus",
+            ["Full Analysis", "Fundamentals Only", "Technicals Only",
+             "Earnings Focus", "Dividend Focus", "Risk Assessment"],
+            default=["Full Analysis"], key="pref_focus"
+        )
+        if DCF_AVAILABLE:
+            prefs["include_dcf"] = st.checkbox("Include DCF Valuation", value=False, key="pref_dcf")
+
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        if st.button("Run Analysis", key="pref_run", type="primary", use_container_width=True):
+            st.session_state.show_preferences = False
+            return True
+    with btn_col2:
+        if st.button("Cancel", key="pref_cancel", use_container_width=True):
+            st.session_state.show_preferences = False
+            st.session_state.pending_prompt = None
+            st.rerun()
+    return False
+
+
+def _display_plotly_charts(results: dict):
+    """Display interactive Plotly charts if available."""
+    plotly_charts = results.get("plotly_charts", {})
+    if not plotly_charts:
+        return
+
+    st.markdown("---")
+    st.markdown("#### Interactive Charts")
+    tab_names = []
+    tab_charts = []
+    if "candlestick" in plotly_charts:
+        tab_names.append("Price & Volume")
+        tab_charts.append(plotly_charts["candlestick"])
+    if "rsi" in plotly_charts:
+        tab_names.append("RSI")
+        tab_charts.append(plotly_charts["rsi"])
+    if "macd" in plotly_charts:
+        tab_names.append("MACD")
+        tab_charts.append(plotly_charts["macd"])
+
+    if tab_names:
+        tabs = st.tabs(tab_names)
+        for tab, chart in zip(tabs, tab_charts):
+            with tab:
+                st.plotly_chart(chart, use_container_width=True, key=f"plotly_{id(chart)}")
+
+
+def _display_dcf_section(stock_data: dict, ticker: str):
+    """Display DCF valuation model if available and requested."""
+    if not DCF_AVAILABLE:
+        return
+    prefs = st.session_state.analysis_preferences
+    if not prefs.get("include_dcf"):
+        return
+
+    st.markdown("---")
+    st.markdown("#### DCF Valuation Model")
+
+    try:
+        model = DCFModel(stock_data)
+        assumptions = get_default_assumptions(stock_data)
+        result = model.calculate(assumptions)
+        display = format_dcf_for_display(result)
+
+        # Key metrics row
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Implied Price", display["implied_price"])
+        with m2:
+            upside = result["upside_pct"]
+            st.metric("Upside / Downside", display["upside_pct"],
+                       delta=f"{'Undervalued' if upside > 0 else 'Overvalued'}")
+        with m3:
+            st.metric("Enterprise Value", display["enterprise_value"])
+        with m4:
+            st.metric("WACC", f"{assumptions['wacc']*100:.1f}%")
+
+        # Projected FCF table
+        with st.expander("Projected Free Cash Flows", expanded=False):
+            import pandas as pd
+            fcf_df = pd.DataFrame({
+                "Year": result["year_labels"],
+                "Projected FCF (SAR M)": [f"{v/1e6:,.0f}" for v in result["projected_fcf"]],
+            })
+            st.dataframe(fcf_df, use_container_width=True, hide_index=True)
+
+        # Sensitivity table
+        with st.expander("Sensitivity Analysis (WACC vs Terminal Growth)", expanded=False):
+            sens = model.sensitivity_table(assumptions)
+            sens_df = pd.DataFrame(
+                [[f"{v:,.1f}" if v and v > 0 else "N/A" for v in row] for row in sens["matrix"]],
+                index=[f"{w*100:.1f}%" for w in sens["wacc_values"]],
+                columns=[f"{g*100:.1f}%" for g in sens["terminal_values"]],
+            )
+            st.dataframe(sens_df, use_container_width=True)
+
+        # Scenario analysis
+        with st.expander("Scenario Analysis", expanded=False):
+            scenarios = model.scenario_analysis(assumptions)
+            s1, s2, s3 = st.columns(3)
+            for col, (label, color) in zip(
+                [s1, s2, s3],
+                [("bull", C_GREEN), ("base", C_ACCENT), ("bear", C_RED)]
+            ):
+                with col:
+                    sc = scenarios[label]
+                    sc_display = format_dcf_for_display(sc)
+                    st.markdown(
+                        f'<div style="{_glass_card_style("16px")};border-left:3px solid {color};">'
+                        f'<div style="font-size:0.75rem;font-weight:700;color:{color};'
+                        f'text-transform:uppercase;margin-bottom:6px;">{label.title()} Case</div>'
+                        f'<div style="font-size:1.1rem;font-weight:700;color:{C_TEXT};">'
+                        f'{sc_display["implied_price"]}</div>'
+                        f'<div style="font-size:0.75rem;color:{C_TEXT2};">'
+                        f'{sc_display["upside_pct"]} vs current</div></div>',
+                        unsafe_allow_html=True
+                    )
+
+    except Exception as e:
+        st.warning(f"DCF model error: {str(e)}")
+
+
+def _handle_user_prompt(prompt: str):
+    """Process user input and route to the appropriate analysis pipeline."""
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Check API key
     if not api_key or api_key == "your_api_key_here":
         with st.chat_message("assistant"):
-            st.error("API key not configured. Please update the .env file with your Anthropic API key.")
+            st.error("API key not configured. Please update the .env file.")
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": "API key not configured. Please update the .env file."
             })
-    else:
-        ticker, company_name = extract_ticker_from_message(prompt)
+        return
 
-        if not ticker:
-            # General question
-            with st.chat_message("assistant"):
-                with st.spinner(""):
-                    try:
-                        response = call_claude(
-                            f"You are a senior financial analyst at TAM Capital, a Saudi Arabia-based "
-                            f"asset management firm regulated by the CMA. Answer this question "
-                            f"professionally and concisely:\n\n{prompt}"
-                        )
-                        st.markdown(response)
-                        st.session_state.messages.append({"role": "assistant", "content": response})
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
-        else:
-            # Run analysis
-            with st.chat_message("assistant"):
-                st.markdown(f"Initiating analysis for **{company_name or ticker}** `{ticker}`")
+    # Portfolio analysis
+    is_portfolio = any(kw in prompt.lower() for kw in [
+        "portfolio", "my positions", "my holdings", "my stocks",
+    ])
+    if is_portfolio and get_positions():
+        st.session_state.current_page = "portfolio"
+        st.rerun()
+        return
 
-                try:
-                    results = run_full_analysis(
-                        ticker, company_name or ticker, prompt, output_format
-                    )
+    # Sector analysis
+    sector_key = detect_sector_request(prompt)
+    if sector_key:
+        with st.chat_message("assistant"):
+            st.markdown(f"Running **{SAUDI_SECTORS[sector_key]['name']}** overview...")
+            try:
+                result = run_sector_analysis(sector_key, prompt)
+                analysis = result.get("analysis", "")
+                if analysis:
+                    st.markdown("---")
+                    st.markdown(f"#### {result['name']}")
+                    st.markdown(analysis[:4000])
+                _display_sources(result.get("sources"))
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"{result['name']} analysis complete.\n\n{analysis[:500]}"
+                })
+            except Exception as e:
+                error_msg = f"Sector analysis error: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        return
 
-                    # Display summary
-                    exec_summary = results["sections"].get("executive_summary", "")
-                    if exec_summary:
+    # Multi-stock comparison
+    multi_stocks = extract_multiple_tickers(prompt)
+    if multi_stocks:
+        with st.chat_message("assistant"):
+            stock_labels = ", ".join(f"**{name}** `{ticker}`" for ticker, name in multi_stocks)
+            st.markdown(f"Running comparative analysis: {stock_labels}")
+            try:
+                results = run_comparison_analysis(multi_stocks, prompt, output_format)
+                analysis = results.get("analysis", "")
+                if analysis:
+                    st.markdown("---")
+                    st.markdown("#### Comparative Analysis")
+                    st.markdown(analysis[:4000])
+
+                for ticker_key, stock_info in results.get("stocks", {}).items():
+                    if stock_info.get("charts"):
                         st.markdown("---")
-                        st.markdown("#### Executive Summary")
-                        st.markdown(exec_summary[:2000])
-
-                    takeaways = results["sections"].get("key_takeaways", "")
-                    if takeaways:
-                        st.markdown("---")
-                        st.markdown("#### Key Takeaways")
-                        st.markdown(takeaways[:1500])
-
-                    # Charts
-                    if results["charts"]:
-                        st.markdown("---")
-                        chart_cols = st.columns(min(len(results["charts"]), 2))
-                        for i, (name, path) in enumerate(results["charts"].items()):
+                        st.markdown(f"##### {stock_info['name']} Charts")
+                        chart_cols = st.columns(min(len(stock_info["charts"]), 2))
+                        for i, (name, path) in enumerate(stock_info["charts"].items()):
                             if os.path.exists(path):
                                 with chart_cols[i % 2]:
-                                    st.image(path, caption=name.replace("_", " ").title(),
-                                             width="stretch")
+                                    st.image(path, caption=name.replace("_", " ").title())
 
-                    # Download buttons
-                    if results["files"]:
-                        st.markdown("---")
-                        st.markdown("#### Download Reports")
-                        cols = st.columns(len(results["files"]))
-                        for i, (fmt, path) in enumerate(results["files"].items()):
-                            if os.path.exists(path):
-                                with cols[i]:
-                                    with open(path, "rb") as f:
-                                        ext_labels = {"docx": "Word Document", "pdf": "PDF Report", "pptx": "Presentation"}
-                                        st.download_button(
-                                            label=f"{ext_labels.get(fmt, fmt.upper())}",
-                                            data=f.read(),
-                                            file_name=os.path.basename(path),
-                                            mime="application/octet-stream",
-                                            key=f"dl_{fmt}_{datetime.now().timestamp()}"
-                                        )
+                _display_download_buttons(results.get("files", {}), "cmp")
+                _display_sources(results.get("sources"))
 
-                    # Show sources
-                    if results.get("sources") and len(results["sources"]) > 0:
-                        st.markdown("---")
-                        with st.expander(f"Sources & References ({len(results['sources'])} sources)", expanded=False):
-                            st.markdown(results["sources"].format_for_display())
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"Comparison complete: {stock_labels}\n\n{analysis[:500]}",
+                    "files": results.get("files", {})
+                })
+            except Exception as e:
+                error_msg = f"Comparison error: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        return
 
-                    # Save to session
-                    summary_text = f"Analysis complete for **{company_name}** ({ticker}).\n\n"
-                    if exec_summary:
-                        summary_text += exec_summary[:500]
+    # Single stock or general question
+    ticker, company_name = extract_ticker_from_message(prompt)
 
+    if not ticker:
+        # General question
+        with st.chat_message("assistant"):
+            with st.spinner(""):
+                try:
+                    response = call_claude(
+                        f"You are a senior financial analyst at TAM Capital, a Saudi Arabia-based "
+                        f"asset management firm regulated by the CMA. Answer this question "
+                        f"professionally and concisely:\n\n{prompt}"
+                    )
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+    else:
+        # --- Pre-analysis preferences check ---
+        if st.session_state.show_preferences:
+            with st.chat_message("assistant"):
+                confirmed = _render_preferences_panel()
+                if not confirmed:
+                    return
+                # Fall through to run analysis with preferences applied
+
+        # Run analysis
+        with st.chat_message("assistant"):
+            st.markdown(f"Initiating analysis for **{company_name or ticker}** `{ticker}`")
+
+            # Inject preferences into prompt if customized
+            prefs = st.session_state.analysis_preferences
+            pref_context = ""
+            if prefs.get("horizon") and prefs["horizon"] != "Medium-term (6-12 months)":
+                pref_context += f" Focus on {prefs['horizon'].lower()} perspective."
+            if prefs.get("focus") and "Full Analysis" not in prefs["focus"]:
+                pref_context += f" Emphasize: {', '.join(prefs['focus'])}."
+            enhanced_prompt = prompt + pref_context if pref_context else prompt
+
+            try:
+                results = run_full_analysis(ticker, company_name or ticker, enhanced_prompt, output_format)
+
+                # Handle cancellation
+                if results.get("cancelled") and not results["sections"]:
+                    st.warning("Research cancelled. No sections were completed.")
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": summary_text,
-                        "files": results.get("files", {})
+                        "content": f"Research cancelled for {company_name} ({ticker})."
                     })
+                    return
 
-                except Exception as e:
-                    error_msg = f"Error during analysis: {str(e)}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                exec_summary = results["sections"].get("executive_summary", "")
+                if exec_summary:
+                    st.markdown("---")
+                    st.markdown("#### Executive Summary")
+                    st.markdown(exec_summary[:2000])
+
+                takeaways = results["sections"].get("key_takeaways", "")
+                if takeaways:
+                    st.markdown("---")
+                    st.markdown("#### Key Takeaways")
+                    st.markdown(takeaways[:1500])
+
+                # --- Interactive Plotly Charts ---
+                _display_plotly_charts(results)
+
+                # --- Static charts fallback ---
+                if results["charts"]:
+                    if not results.get("plotly_charts"):
+                        st.markdown("---")
+                    chart_cols = st.columns(min(len(results["charts"]), 2))
+                    for i, (name, path) in enumerate(results["charts"].items()):
+                        if os.path.exists(path):
+                            with chart_cols[i % 2]:
+                                st.image(path, caption=name.replace("_", " ").title())
+
+                # --- DCF Valuation ---
+                _display_dcf_section(results.get("stock_data", {}), ticker)
+
+                # --- Peer Benchmarking ---
+                if PEERS_AVAILABLE:
+                    sector_key, sector_name = get_sector_for_ticker(ticker)
+                    if sector_key:
+                        with st.expander(f"Peer Comparison — {sector_name}", expanded=False):
+                            with st.spinner("Loading peer data..."):
+                                try:
+                                    peers = get_peers(ticker)
+                                    all_tickers = [(ticker, company_name)] + peers
+                                    metrics_df = fetch_peer_metrics(all_tickers)
+                                    if not metrics_df.empty:
+                                        rankings_df = calculate_peer_rankings(metrics_df)
+                                        heatmap = generate_peer_heatmap(metrics_df, rankings_df, ticker)
+                                        st.plotly_chart(heatmap, use_container_width=True,
+                                                        key=f"peer_heat_{ticker}")
+                                        table_html = generate_peer_comparison_table(metrics_df, ticker)
+                                        st.markdown(table_html, unsafe_allow_html=True)
+                                except Exception as e:
+                                    st.warning(f"Peer comparison error: {str(e)}")
+
+                # --- Financial Statements ---
+                if FINANCIALS_VIEWER_AVAILABLE:
+                    with st.expander("Financial Statements (5-Year)", expanded=False):
+                        with st.spinner("Loading financial data..."):
+                            try:
+                                fin_data = generate_financial_overview(ticker)
+                                fin_tabs = st.tabs(["Income Statement", "Balance Sheet", "Cash Flow"])
+                                for tab, key in zip(fin_tabs, ["income_html", "balance_html", "cashflow_html"]):
+                                    with tab:
+                                        html = fin_data.get(key, "")
+                                        if html:
+                                            st.markdown(html, unsafe_allow_html=True)
+                                        else:
+                                            st.info("Data not available for this ticker.")
+                            except Exception as e:
+                                st.warning(f"Financial data error: {str(e)}")
+
+                # --- Predictive Signals ---
+                if SIGNALS_AVAILABLE:
+                    with st.expander("AI Predictive Signals (Experimental)", expanded=False):
+                        try:
+                            signals = get_all_signals(ticker)
+                            badges_html = generate_signal_badges_html(signals)
+                            st.markdown(badges_html, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.warning(f"Signal generation error: {str(e)}")
+
+                # --- Sentiment Extract & Store ---
+                if SENTIMENT_AVAILABLE and not results.get("cancelled"):
+                    try:
+                        report_text = " ".join(
+                            str(v) for v in results.get("sections", {}).values() if v
+                        )
+                        if report_text:
+                            scores = extract_sentiment(report_text, ticker)
+                            store_sentiment(ticker, scores)
+                            with st.expander("Sentiment Analysis", expanded=False):
+                                fig = generate_sentiment_chart(ticker)
+                                if fig:
+                                    st.plotly_chart(fig, use_container_width=True)
+                    except Exception:
+                        pass
+
+                # --- Research Notes ---
+                if NOTES_AVAILABLE:
+                    with st.expander("Research Notes", expanded=False):
+                        user_id = None
+                        if AUTH_AVAILABLE and is_authenticated():
+                            u = get_current_user()
+                            if u:
+                                user_id = u.get("id")
+                        render_notes_panel(ticker, user_id or "default")
+
+                _display_download_buttons(results.get("files", {}), "dl")
+                _display_sources(results.get("sources"))
+
+                # --- Activity & Audit Logging ---
+                if ACTIVITY_AVAILABLE:
+                    try:
+                        uid = None
+                        if AUTH_AVAILABLE and is_authenticated():
+                            u = get_current_user()
+                            if u:
+                                uid = u.get("id")
+                        track_activity(uid, "analyze", ticker=ticker)
+                    except Exception:
+                        pass
+                if AUDIT_AVAILABLE:
+                    try:
+                        uid = None
+                        if AUTH_AVAILABLE and is_authenticated():
+                            u = get_current_user()
+                            if u:
+                                uid = u.get("id")
+                        log_audit(uid, "report_generate", resource_type="report", details={"ticker": ticker})
+                    except Exception:
+                        pass
+
+                cancelled_tag = " (partial — stopped early)" if results.get("cancelled") else ""
+                summary_text = f"Analysis complete for **{company_name}** ({ticker}){cancelled_tag}.\n\n"
+                if exec_summary:
+                    summary_text += exec_summary[:500]
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": summary_text,
+                    "files": results.get("files", {})
+                })
+
+            except Exception as e:
+                error_msg = f"Error during analysis: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
+
+# ==========================================================
+# ALERTS PAGE
+# ==========================================================
+def render_alerts():
+    """Centralized alert management page."""
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
+            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
+                letter-spacing:-0.02em;">\u26A0 Alert Center</span>
+        </div>""",
+        unsafe_allow_html=True
+    )
+
+    if ALERT_RULES_AVAILABLE:
+        tab_names = ["Alert Rules", "Alert History"]
+        if SCHEDULES_AVAILABLE:
+            tab_names.append("Scheduled Reports")
+        all_tabs = st.tabs(tab_names)
+        rules_tab = all_tabs[0]
+        history_tab = all_tabs[1]
+        schedule_tab = all_tabs[2] if SCHEDULES_AVAILABLE else None
+        with rules_tab:
+            render_alert_rules_panel()
+        with history_tab:
+            recent = get_recent_alerts(limit=50)
+            if recent:
+                for alert in recent:
+                    sev_color = {"major": C_RED, "moderate": C_ORANGE}.get(
+                        alert.get("severity"), C_ACCENT2
+                    )
+                    st.markdown(
+                        f'<div style="{_glass_card_style("12px")}border-left:3px solid {sev_color};">'
+                        f'<span style="color:{C_TEXT};font-weight:500;">{alert["message"]}</span>'
+                        f'<br/><span style="font-size:0.7rem;color:{C_MUTED};">'
+                        f'{alert.get("display_time", "")}</span></div>',
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.info("No alerts yet. Configure alert rules to start monitoring.")
+        if schedule_tab:
+            with schedule_tab:
+                user_id = "default"
+                if AUTH_AVAILABLE and is_authenticated():
+                    u = get_current_user()
+                    if u:
+                        user_id = u.get("id", "default")
+                render_schedule_panel(user_id)
+    else:
+        st.info("Alert rules module not available. Check dependencies.")
+
+
+# ==========================================================
+# PAGE ROUTER
+# ==========================================================
+
+page = st.session_state.current_page
+
+# Auth gate: if auth is available, require login first
+if AUTH_AVAILABLE and not is_authenticated():
+    render_login_page()
+else:
+    if page == "dashboard":
+        render_dashboard()
+    elif page == "research":
+        render_research()
+    elif page == "portfolio":
+        render_portfolio()
+    elif page == "sectors":
+        render_sectors()
+    elif page == "comparison":
+        render_comparison()
+    elif page == "watchlist":
+        render_watchlist()
+    elif page == "alerts":
+        render_alerts()
+    elif page == "admin":
+        if ADMIN_AVAILABLE:
+            render_admin()
+        else:
+            st.warning("Admin panel not available.")
+    else:
+        render_dashboard()

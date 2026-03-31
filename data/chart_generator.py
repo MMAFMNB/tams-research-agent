@@ -9,30 +9,39 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# TAMS color scheme
-# TAM Capital brand colors
-DARK_BLUE = "#222F62"
-LIGHT_BLUE = "#1A6DB6"
-TURQUOISE = "#6CB9B6"
-GRAY = "#4A4A4A"
-SOFT_CARBON = "#B1B3B6"
-LIGHT_GRAY = "#F0F0F0"
-RED = "#D32F2F"
-ORANGE = "#FF9800"
-GREEN = TURQUOISE  # Chart accent
+# TAMS color scheme – TAM Liquid Glass dark theme
+DARK_BLUE = "#222F62"      # TAM Deep Blue (primary brand)
+LIGHT_BLUE = "#1A6DB6"     # TAM Light Blue (accent)
+TURQUOISE = "#6CB9B6"      # TAM Turquoise (highlight)
+GRAY = "#8B949E"           # Text secondary
+SOFT_CARBON = "#4A5568"    # Text muted
+LIGHT_GRAY = "#111A2E"     # Subtle bg
+RED = "#EF4444"
+ORANGE = "#F59E0B"
+GREEN = "#22C55E"          # TAM Logo Green (success/growth)
+
+# Dark theme chart palette
+BG_DARK = "#070B14"
+AXES_BG = "#0C1220"
+GRID_COLOR = "rgba(108,185,182,0.04)"
+TEXT_COLOR = "#8B949E"
 
 plt.rcParams.update({
     "font.family": "sans-serif",
-    "font.sans-serif": ["Arial", "DejaVu Sans", "Liberation Sans", "Helvetica"],
+    "font.sans-serif": ["Inter", "Arial", "DejaVu Sans", "Liberation Sans", "Helvetica"],
     "font.size": 10,
     "axes.titlesize": 12,
     "axes.titleweight": "bold",
     "axes.labelsize": 10,
-    "figure.facecolor": "white",
-    "axes.facecolor": "white",
-    "axes.edgecolor": "#CCCCCC",
-    "grid.color": "#E0E0E0",
+    "axes.labelcolor": TEXT_COLOR,
+    "figure.facecolor": BG_DARK,
+    "axes.facecolor": AXES_BG,
+    "axes.edgecolor": "#111A2E",
+    "grid.color": "#111A2E",
     "grid.linewidth": 0.5,
+    "text.color": TEXT_COLOR,
+    "xtick.color": TEXT_COLOR,
+    "ytick.color": TEXT_COLOR,
 })
 
 
@@ -40,7 +49,7 @@ def _save_chart(fig, output_dir: str, name: str) -> str:
     """Save chart to file and return path."""
     os.makedirs(output_dir, exist_ok=True)
     path = os.path.join(output_dir, f"{name}.png")
-    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
     plt.close(fig)
     return path
 

@@ -1,0 +1,1 @@
+"""TAM Research — Authentication Module."""
