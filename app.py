@@ -350,8 +350,9 @@ NAV_ICONS = {
 
 # Determine visibility state
 _show_landing = LANDING_AVAILABLE and st.session_state.get("show_landing", True)
-_is_authed = AUTH_AVAILABLE and is_authenticated()
-_show_full_sidebar = not _show_landing and _is_authed
+# Auth bypassed for now — show full sidebar whenever not on landing page
+_is_authed = True  # AUTH_AVAILABLE and is_authenticated()
+_show_full_sidebar = not _show_landing  # and _is_authed
 
 # Hide sidebar completely on landing page
 if _show_landing:
@@ -2534,9 +2535,9 @@ page = st.session_state.current_page
 # Landing page gate: show landing on first visit
 if LANDING_AVAILABLE and st.session_state.get("show_landing", True):
     render_landing_page()
-# Auth gate: if auth is available, require login first
-elif AUTH_AVAILABLE and not is_authenticated():
-    render_login_page()
+# Auth gate: disabled for now — will re-enable once email verification is working
+# elif AUTH_AVAILABLE and not is_authenticated():
+#     render_login_page()
 else:
     if page == "dashboard":
         render_dashboard()
