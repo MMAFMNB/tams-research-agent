@@ -17,8 +17,8 @@ C_TURQUOISE = "#6CB9B6"
 C_GREEN = "#22C55E"
 C_RED = "#EF4444"
 C_CARD = "rgba(26,38,78,0.15)"
-C_GLASS = "rgba(34,47,98,0.12)"
-C_BORDER = "rgba(108,185,182,0.08)"
+C_GLASS = "rgba(34,47,98,0.18)"
+C_BORDER = "rgba(108,185,182,0.12)"
 
 # --- Local user store (JSON fallback when Supabase not available) ---
 USERS_FILE = Path(__file__).parent.parent / "data" / "users.json"
@@ -77,100 +77,130 @@ def _ensure_admin_exists():
         _save_users(users)
 
 
+# =========================================================================
+# LOGIN PAGE — Main Render
+# =========================================================================
+
 def render_login_page():
-    """Render the TAM Liquid Glass login/signup page."""
+    """Render the TAM login / signup page with polished dark theme."""
     if st.session_state.get("authenticated"):
         return True
 
     _ensure_admin_exists()
 
-    # CSS
+    # --- Full-page CSS ---
     st.markdown(f"""<style>
-    [data-testid="stAppViewContainer"] {{
-        display: flex; align-items: center; justify-content: center;
-        min-height: 100vh;
-    }}
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 0;
-        justify-content: center;
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        flex: 1;
-        justify-content: center;
+    /* Hide Streamlit chrome */
+    #MainMenu, footer, .stDeployButton, div[data-testid="stToolbar"] {{display:none!important;}}
+    header[data-testid="stHeader"] {{background:transparent!important;}}
+
+    .stApp {{
+        background: linear-gradient(160deg, {C_BG} 0%, #0E1A2E 50%, {C_BG} 100%) !important;
     }}
 
-    /* ---- Form input styling ---- */
-    /* Input field text color */
+    /* Center content vertically */
+    [data-testid="stAppViewContainer"] > .main > div {{
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; min-height: 85vh;
+    }}
+
+    /* Input fields */
     .stTextInput input {{
         color: {C_TEXT} !important;
-        background-color: rgba(26, 38, 78, 0.35) !important;
-        border: 1px solid {C_BORDER} !important;
-        border-radius: 10px !important;
+        background: rgba(14, 26, 46, 0.6) !important;
+        border: 1px solid rgba(108,185,182,0.15) !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 0.8rem !important;
+        font-size: 0.9rem !important;
         caret-color: {C_TURQUOISE} !important;
     }}
     .stTextInput input:focus {{
         border-color: {C_TURQUOISE} !important;
-        box-shadow: 0 0 0 1px {C_TURQUOISE} !important;
+        box-shadow: 0 0 0 2px rgba(108,185,182,0.15) !important;
     }}
-    /* Placeholder text */
     .stTextInput input::placeholder {{
-        color: {C_TEXT2} !important;
-        opacity: 0.7 !important;
+        color: rgba(139,148,158,0.6) !important;
     }}
-    /* Input labels */
     .stTextInput label {{
         color: {C_TEXT2} !important;
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
     }}
+    .stTextInput .st-emotion-cache-1aehpvj {{
+        color: {C_TEXT2} !important;
+    }}
+
     /* Primary button */
     .stButton > button[kind="primary"] {{
         background: linear-gradient(135deg, {C_ACCENT}, {C_TURQUOISE}) !important;
-        border: none !important;
-        color: white !important;
-        border-radius: 10px !important;
-        font-weight: 600 !important;
-        padding: 0.55rem 1.5rem !important;
+        border: none !important; color: white !important;
+        border-radius: 8px !important; font-weight: 600 !important;
+        padding: 0.6rem 1.5rem !important; font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 2px 12px rgba(26,109,182,0.3) !important;
     }}
     .stButton > button[kind="primary"]:hover {{
-        box-shadow: 0 4px 20px rgba(26,109,182,0.4) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 20px rgba(26,109,182,0.45) !important;
     }}
-    /* Secondary button */
-    .stButton > button[kind="secondary"] {{
+    /* Secondary / ghost button */
+    .stButton > button[kind="secondary"],
+    .stButton > button:not([kind="primary"]) {{
         background: transparent !important;
-        border: 1px solid rgba(108,185,182,0.3) !important;
-        color: {C_TEXT2} !important;
-        border-radius: 10px !important;
+        border: 1px solid rgba(108,185,182,0.2) !important;
+        color: {C_TEXT2} !important; border-radius: 8px !important;
+        font-size: 0.85rem !important;
     }}
-    /* Tab styling */
+    .stButton > button[kind="secondary"]:hover,
+    .stButton > button:not([kind="primary"]):hover {{
+        border-color: {C_TURQUOISE} !important;
+        color: {C_TURQUOISE} !important;
+    }}
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 0; justify-content: center;
+        background: rgba(14,26,46,0.4); border-radius: 10px;
+        padding: 3px; border: 1px solid rgba(108,185,182,0.08);
+    }}
     .stTabs [data-baseweb="tab"] {{
-        color: {C_TEXT2} !important;
+        flex: 1; justify-content: center; border-radius: 8px;
+        color: {C_TEXT2} !important; font-weight: 500 !important;
+        font-size: 0.85rem !important; padding: 8px 16px !important;
     }}
     .stTabs [aria-selected="true"] {{
-        color: {C_TEXT} !important;
+        color: white !important;
+        background: rgba(26,109,182,0.3) !important;
     }}
+    .stTabs [data-baseweb="tab-highlight"] {{
+        display: none !important;
+    }}
+    .stTabs [data-baseweb="tab-border"] {{
+        display: none !important;
+    }}
+
+    /* Reduce spacing between elements */
+    div[data-testid="stVerticalBlock"] > div {{gap: 0.25rem;}}
     </style>""", unsafe_allow_html=True)
 
-    col1, center, col3 = st.columns([1, 2, 1])
+    # --- Layout ---
+    _, center, _ = st.columns([1.2, 2, 1.2])
     with center:
-        # Header card
-        st.markdown(f'''<div style="
-            background: {C_GLASS};
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid {C_BORDER};
-            border-radius: 20px;
-            padding: 40px 32px 20px;
-            text-align: center;
-            margin: 40px auto 0;
-            max-width: 440px;
-        ">
-            <h2 style="color:{C_TEXT};font-weight:700;margin-bottom:4px;font-size:1.4rem;">
+        # Logo + Title header
+        st.markdown(f"""
+        <div style="text-align:center; padding:20px 0 24px 0;">
+            <div style="display:inline-block; width:48px; height:48px; border-radius:12px;
+                        background:linear-gradient(135deg, {C_ACCENT}, {C_TURQUOISE});
+                        line-height:48px; text-align:center; font-size:1.2rem; font-weight:700;
+                        color:white; margin-bottom:14px;">T</div>
+            <h2 style="color:{C_TEXT}; font-weight:700; margin:0 0 4px 0; font-size:1.35rem;">
                 TAM Research Terminal</h2>
-            <p style="color:{C_TEXT2};font-size:0.85rem;margin-bottom:8px;">
-                AI-Powered Investment Research for Saudi Markets</p>
-        </div>''', unsafe_allow_html=True)
+            <p style="color:{C_TEXT2}; font-size:0.82rem; margin:0;">
+                AI-Powered Investment Research</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # Tabs: Sign In / Create Account
+        # Tabs
         tab_signin, tab_signup = st.tabs(["Sign In", "Create Account"])
 
         with tab_signin:
@@ -179,42 +209,58 @@ def render_login_page():
         with tab_signup:
             _render_signup_form()
 
-        # Disclaimer
-        st.markdown(f'''<p style="color:{C_TEXT2};font-size:0.65rem;margin-top:20px;text-align:center;">
-            TAM Capital | CMA Regulated<br>Confidential — Authorized Personnel Only
-        </p>''', unsafe_allow_html=True)
+        # Footer
+        st.markdown(f"""
+        <div style="text-align:center; padding:20px 0 0 0;">
+            <p style="color:rgba(139,148,158,0.5); font-size:0.65rem; margin:0;">
+                TAM Capital  ·  CMA Regulated  ·  Confidential</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     return False
 
 
+# =========================================================================
+# SIGN IN FORM
+# =========================================================================
+
 def _render_signin_form():
     """Render the sign-in form."""
+    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
     email = st.text_input("Email", placeholder="name@tamcapital.sa", key="login_email")
     password = st.text_input("Password", type="password", key="login_password")
 
-    col_login, col_forgot = st.columns([2, 1])
-    with col_login:
-        if st.button("Sign In", key="login_btn", type="primary", use_container_width=True):
-            if email and password:
-                success = _authenticate_password(email, password)
-                if success:
-                    st.rerun()
-                else:
-                    st.error("Invalid email or password")
+    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+    if st.button("Sign In", key="login_btn", type="primary", use_container_width=True):
+        if email and password:
+            success = _authenticate_password(email, password)
+            if success:
+                st.rerun()
             else:
-                st.warning("Please enter email and password")
-    with col_forgot:
-        if st.button("Forgot?", key="forgot_btn", use_container_width=True):
+                st.error("Invalid email or password")
+        else:
+            st.warning("Please enter email and password")
+
+    # Password reset section
+    if st.session_state.get("reset_pending"):
+        _render_reset_code_form()
+    else:
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        if st.button("Forgot password?", key="forgot_btn", use_container_width=True):
             if email:
                 _send_password_reset(email)
-                st.info("If that email exists, a reset link was sent")
             else:
                 st.warning("Enter your email first")
 
 
+# =========================================================================
+# SIGN UP FORM
+# =========================================================================
+
 def _render_signup_form():
     """Render the sign-up / registration form with email verification."""
-
     # Import email verification
     try:
         from auth.email_verify import send_and_store, verify_code, is_email_verified
@@ -227,12 +273,16 @@ def _render_signup_form():
         _render_verify_code_form()
         return
 
+    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
     full_name = st.text_input("Full Name", placeholder="Ahmed Al-Rashid", key="signup_name")
     email = st.text_input("Work Email", placeholder="name@company.com", key="signup_email")
     company = st.text_input("Company / Organization", placeholder="TAM Capital", key="signup_company")
     password = st.text_input("Create Password", type="password", key="signup_password",
                              help="At least 8 characters")
     password2 = st.text_input("Confirm Password", type="password", key="signup_password2")
+
+    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
     if st.button("Create Account", key="signup_btn", type="primary", use_container_width=True):
         # Validation
@@ -263,7 +313,6 @@ def _render_signup_form():
             if success:
                 st.session_state["verify_pending"] = True
                 if dev_code:
-                    # Dev mode — show code directly
                     st.session_state["dev_verify_code"] = dev_code
                 st.rerun()
             else:
@@ -278,6 +327,10 @@ def _render_signup_form():
                 st.error("Registration failed. Please try again.")
 
 
+# =========================================================================
+# EMAIL VERIFICATION CODE FORM
+# =========================================================================
+
 def _render_verify_code_form():
     """Render the email verification code entry form."""
     from auth.email_verify import verify_code, send_and_store
@@ -286,20 +339,20 @@ def _render_verify_code_form():
     email = pending.get("email", "")
 
     st.markdown(f"""
-    <div style="text-align:center; padding:10px 0 15px 0;">
-        <h3 style="color:{C_TEXT}; font-size:1.2rem;">Verify Your Email</h3>
-        <p style="color:{C_TEXT2}; font-size:0.85rem;">
+    <div style="text-align:center; padding:8px 0 12px 0;">
+        <div style="font-size:1.6rem; margin-bottom:8px;">📧</div>
+        <h3 style="color:{C_TEXT}; font-size:1.1rem; margin:0 0 4px 0;">Check your inbox</h3>
+        <p style="color:{C_TEXT2}; font-size:0.82rem; margin:0;">
             We sent a 6-digit code to <strong style="color:{C_TURQUOISE};">{email}</strong>
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Dev mode: show code
     dev_code = st.session_state.get("dev_verify_code")
     if dev_code:
-        st.info(f"Development mode — your verification code is: **{dev_code}**")
+        st.info(f"Dev mode — your code is: **{dev_code}**")
 
-    code = st.text_input("Enter 6-digit code", max_chars=6, key="verify_code_input",
+    code = st.text_input("Verification code", max_chars=6, key="verify_code_input",
                          placeholder="123456")
 
     col1, col2 = st.columns(2)
@@ -308,27 +361,21 @@ def _render_verify_code_form():
             if not code or len(code) != 6:
                 st.warning("Please enter the 6-digit code")
                 return
-
             success, msg = verify_code(email, code)
             if success:
-                # Complete registration
                 reg_success = _register_user(
-                    pending["full_name"],
-                    pending["email"],
-                    pending["password"],
-                    pending.get("company", ""),
+                    pending["full_name"], pending["email"],
+                    pending["password"], pending.get("company", ""),
                 )
                 if reg_success:
-                    # Clean up
                     for key in ["verify_pending", "pending_signup", "dev_verify_code"]:
                         st.session_state.pop(key, None)
                     st.success("Email verified! You're now signed in.")
                     st.rerun()
                 else:
-                    st.error("Registration failed after verification. Please try again.")
+                    st.error("Registration failed after verification.")
             else:
                 st.error(msg)
-
     with col2:
         if st.button("Resend Code", key="resend_btn", use_container_width=True):
             success, msg, dev_code = send_and_store(email)
@@ -340,12 +387,105 @@ def _render_verify_code_form():
             else:
                 st.error(f"Failed to resend: {msg}")
 
-    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-    if st.button("Back to Sign Up", key="back_signup_btn"):
+    if st.button("← Back to Sign Up", key="back_signup_btn"):
         for key in ["verify_pending", "pending_signup", "dev_verify_code"]:
             st.session_state.pop(key, None)
         st.rerun()
 
+
+# =========================================================================
+# PASSWORD RESET — now uses Resend (not just Supabase)
+# =========================================================================
+
+def _send_password_reset(email: str):
+    """Send password reset email via Resend. Works for local JSON users too."""
+    user = _find_user_by_email(email)
+    if not user:
+        # Don't reveal whether email exists
+        st.info("If that email is registered, you'll receive a reset code shortly.")
+        return
+
+    try:
+        from auth.email_verify import send_and_store
+        success, msg, dev_code = send_and_store(email)
+        if success:
+            st.session_state["reset_pending"] = True
+            st.session_state["reset_email"] = email
+            if dev_code:
+                st.session_state["dev_reset_code"] = dev_code
+            st.info("Password reset code sent! Check your inbox.")
+            st.rerun()
+        else:
+            st.error(f"Could not send reset email: {msg}")
+    except ImportError:
+        st.error("Email service not available.")
+
+
+def _render_reset_code_form():
+    """Render the password reset code + new password form."""
+    from auth.email_verify import verify_code
+
+    email = st.session_state.get("reset_email", "")
+
+    st.markdown(f"""
+    <div style="text-align:center; padding:8px 0 10px 0;">
+        <div style="font-size:1.4rem; margin-bottom:6px;">🔑</div>
+        <h4 style="color:{C_TEXT}; font-size:1rem; margin:0 0 4px 0;">Reset Your Password</h4>
+        <p style="color:{C_TEXT2}; font-size:0.8rem; margin:0;">
+            Enter the code sent to <strong style="color:{C_TURQUOISE};">{email}</strong></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    dev_code = st.session_state.get("dev_reset_code")
+    if dev_code:
+        st.info(f"Dev mode — your reset code is: **{dev_code}**")
+
+    code = st.text_input("Reset code", max_chars=6, key="reset_code_input", placeholder="123456")
+    new_pass = st.text_input("New password", type="password", key="reset_new_pass",
+                             help="At least 8 characters")
+    new_pass2 = st.text_input("Confirm new password", type="password", key="reset_new_pass2")
+
+    if st.button("Reset Password", key="reset_submit_btn", type="primary", use_container_width=True):
+        if not code or len(code) != 6:
+            st.warning("Enter the 6-digit code")
+            return
+        if not new_pass or len(new_pass) < 8:
+            st.warning("Password must be at least 8 characters")
+            return
+        if new_pass != new_pass2:
+            st.error("Passwords do not match")
+            return
+
+        success, msg = verify_code(email, code)
+        if success:
+            # Update the password in local store
+            users = _load_users()
+            updated = False
+            for u in users:
+                if u.get("email", "").lower() == email.lower():
+                    u["password_hash"] = _hash_password(new_pass)
+                    updated = True
+                    break
+            if updated:
+                _save_users(users)
+                for key in ["reset_pending", "reset_email", "dev_reset_code"]:
+                    st.session_state.pop(key, None)
+                st.success("Password reset! You can now sign in with your new password.")
+                st.rerun()
+            else:
+                st.error("User not found.")
+        else:
+            st.error(msg)
+
+    if st.button("← Back to Sign In", key="back_signin_btn"):
+        for key in ["reset_pending", "reset_email", "dev_reset_code"]:
+            st.session_state.pop(key, None)
+        st.rerun()
+
+
+# =========================================================================
+# REGISTRATION
+# =========================================================================
 
 def _register_user(full_name: str, email: str, password: str, company: str = "") -> bool:
     """Register a new user. Tries Supabase, falls back to local JSON."""
@@ -353,46 +493,28 @@ def _register_user(full_name: str, email: str, password: str, company: str = "")
         from data.supabase_client import get_client, SUPABASE_AVAILABLE
         if SUPABASE_AVAILABLE:
             client = get_client()
-            # Create auth user in Supabase
             response = client.auth.sign_up({
                 "email": email,
                 "password": password,
-                "options": {
-                    "data": {
-                        "full_name": full_name,
-                        "company": company,
-                    }
-                }
+                "options": {"data": {"full_name": full_name, "company": company}}
             })
             if response.user:
-                # Also insert into users table
                 user_id = response.user.id
                 client.table("users").insert({
-                    "id": user_id,
-                    "email": email,
-                    "full_name": full_name,
-                    "role": "viewer",  # New signups start as viewer
-                    "company": company,
-                    "status": "active",
+                    "id": user_id, "email": email, "full_name": full_name,
+                    "role": "viewer", "company": company, "status": "active",
                     "created_at": datetime.now().isoformat(),
                 }).execute()
-
-                # Auto-login after signup
                 st.session_state.authenticated = True
                 st.session_state.user = {
-                    "id": user_id,
-                    "email": email,
-                    "full_name": full_name,
-                    "role": "viewer",
-                    "company": company,
+                    "id": user_id, "email": email, "full_name": full_name,
+                    "role": "viewer", "company": company,
                 }
                 if response.session:
                     st.session_state.auth_token = response.session.access_token
                 return True
     except Exception:
         pass
-
-    # Fallback: local JSON store
     return _register_user_local(full_name, email, password, company)
 
 
@@ -415,20 +537,19 @@ def _register_user_local(full_name: str, email: str, password: str, company: str
         }
         users.append(new_user)
         _save_users(users)
-
-        # Auto-login
         st.session_state.authenticated = True
         st.session_state.user = {
-            "id": user_id,
-            "email": email.lower(),
-            "full_name": full_name,
-            "role": "viewer",
-            "company": company,
+            "id": user_id, "email": email.lower(), "full_name": full_name,
+            "role": "viewer", "company": company,
         }
         return True
     except Exception:
         return False
 
+
+# =========================================================================
+# AUTHENTICATION
+# =========================================================================
 
 def _authenticate_password(email: str, password: str) -> bool:
     """Authenticate with email/password. Tries Supabase, falls back to local."""
@@ -441,17 +562,13 @@ def _authenticate_password(email: str, password: str) -> bool:
                 user_data = client.table("users").select("*").eq("email", email).single().execute()
                 st.session_state.authenticated = True
                 st.session_state.user = user_data.data if user_data.data else {
-                    "id": response.user.id,
-                    "email": email,
-                    "full_name": email.split("@")[0],
-                    "role": "analyst",
+                    "id": response.user.id, "email": email,
+                    "full_name": email.split("@")[0], "role": "analyst",
                 }
                 st.session_state.auth_token = response.session.access_token
                 return True
     except Exception:
         pass
-
-    # Fallback: local JSON store
     return _authenticate_local(email, password)
 
 
@@ -460,24 +577,19 @@ def _authenticate_local(email: str, password: str) -> bool:
     user = _find_user_by_email(email)
     if not user:
         return False
-
     if user.get("status") != "active":
         st.error("Your account has been deactivated. Contact admin.")
         return False
-
     if user.get("password_hash") == _hash_password(password):
-        # Update last login
         users = _load_users()
         for u in users:
             if u["id"] == user["id"]:
                 u["last_login"] = datetime.now().isoformat()
                 break
         _save_users(users)
-
         st.session_state.authenticated = True
         st.session_state.user = {
-            "id": user["id"],
-            "email": user["email"],
+            "id": user["id"], "email": user["email"],
             "full_name": user["full_name"],
             "role": user.get("role", "viewer"),
             "company": user.get("company", ""),
@@ -486,16 +598,9 @@ def _authenticate_local(email: str, password: str) -> bool:
     return False
 
 
-def _send_password_reset(email: str):
-    """Send password reset email."""
-    try:
-        from data.supabase_client import get_client, SUPABASE_AVAILABLE
-        if SUPABASE_AVAILABLE:
-            client = get_client()
-            client.auth.reset_password_email(email)
-    except Exception:
-        pass
-
+# =========================================================================
+# PUBLIC API — used by app.py and admin
+# =========================================================================
 
 def get_current_user() -> dict | None:
     """Get the currently logged-in user."""
@@ -526,8 +631,6 @@ def update_user_role(user_id: str, new_role: str) -> bool:
             return True
     except Exception:
         pass
-
-    # Local fallback
     users = _load_users()
     for u in users:
         if u["id"] == user_id:
@@ -548,8 +651,6 @@ def toggle_user_status(user_id: str, active: bool) -> bool:
             return True
     except Exception:
         pass
-
-    # Local fallback
     users = _load_users()
     for u in users:
         if u["id"] == user_id:
