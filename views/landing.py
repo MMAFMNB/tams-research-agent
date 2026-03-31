@@ -123,12 +123,7 @@ def render_landing_page():
     # Built by TAM
     st.markdown(f"""
     <div style="text-align:center; padding-top:1.5rem;">
-        <span style="display:inline-flex; align-items:center; gap:8px;">
-            <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:{C_DEEP};color:white;text-align:center;line-height:32px;font-size:0.7rem;font-weight:700;">MM</span>
-            <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:{C_GREEN};color:white;text-align:center;line-height:32px;font-size:0.7rem;font-weight:700;">AS</span>
-            <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:{C_ACCENT};color:white;text-align:center;line-height:32px;font-size:0.7rem;font-weight:700;">KH</span>
-            <span style="color:{C_TEXT2}; font-size:0.85rem; margin-left:6px;">Built by TAM Capital</span>
-        </span>
+        <span style="color:{C_TEXT2}; font-size:0.85rem;">Built by TAM Capital</span>
     </div>
     """, unsafe_allow_html=True)
 
