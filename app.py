@@ -179,6 +179,13 @@ try:
 except ImportError:
     SCHEDULES_AVAILABLE = False
 
+# --- Landing page (optional) ---
+try:
+    from pages.landing import render_landing_page
+    LANDING_AVAILABLE = True
+except ImportError:
+    LANDING_AVAILABLE = False
+
 # --- Page config ---
 st.set_page_config(
     page_title="TAM Capital — Research Terminal",
@@ -289,6 +296,8 @@ if "show_preferences" not in st.session_state:
     st.session_state.show_preferences = False
 if "pending_prompt" not in st.session_state:
     st.session_state.pending_prompt = None
+if "show_landing" not in st.session_state:
+    st.session_state.show_landing = True
 
 
 # ==========================================================
@@ -2455,8 +2464,11 @@ def render_alerts():
 
 page = st.session_state.current_page
 
+# Landing page gate: show landing on first visit
+if LANDING_AVAILABLE and st.session_state.get("show_landing", True):
+    render_landing_page()
 # Auth gate: if auth is available, require login first
-if AUTH_AVAILABLE and not is_authenticated():
+elif AUTH_AVAILABLE and not is_authenticated():
     render_login_page()
 else:
     if page == "dashboard":
