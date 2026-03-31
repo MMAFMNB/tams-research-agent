@@ -528,7 +528,8 @@ def _render_audit_log_tab():
 
     with col3:
         if st.button("Export CSV", use_container_width=True):
-            logs = get_audit_log(days=days, limit=5000)
+            start = datetime.now() - timedelta(days=days)
+            logs = get_audit_log(start_date=start, limit=5000)
             if logs:
                 df = pd.DataFrame(logs)
                 csv = df.to_csv(index=False)
@@ -537,7 +538,8 @@ def _render_audit_log_tab():
                                    "text/csv")
 
     # Get logs
-    logs = get_audit_log(days=days, limit=200)
+    start = datetime.now() - timedelta(days=days)
+    logs = get_audit_log(start_date=start, limit=200)
 
     if action_filter != "All":
         logs = [l for l in logs if l.get("action") == action_filter]

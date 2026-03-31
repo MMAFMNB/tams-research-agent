@@ -948,7 +948,7 @@ document.getElementById('heroCta').addEventListener('click', enterApp);
     # Render as iframe component for full control
     import urllib.parse
     encoded = urllib.parse.quote(html)
-    st.components.v1.html(html, height=3800, scrolling=True)
+    st.components.v1.html(html, height=3200, scrolling=True)
 
     # Streamlit button below the iframe as reliable fallback
     st.markdown("")
