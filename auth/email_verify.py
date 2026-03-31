@@ -18,7 +18,8 @@ _lock = threading.Lock()
 
 # Resend API
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-FROM_EMAIL = os.environ.get("VERIFY_FROM_EMAIL", "noreply@tamcapital.sa")
+# Use Resend's default sender until tamcapital.sa is verified at https://resend.com/domains
+FROM_EMAIL = os.environ.get("VERIFY_FROM_EMAIL", "TAM Research Terminal <onboarding@resend.dev>")
 
 
 def _load_codes() -> dict:
