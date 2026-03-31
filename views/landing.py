@@ -9,15 +9,17 @@ import base64
 import os
 
 
-# TAM Brand colors
+# TAM Brand colors — Stripe Dashboard theme
 C_DEEP = "#222F62"
 C_ACCENT = "#1A6DB6"
 C_TURQUOISE = "#6CB9B6"
 C_GREEN = "#22C55E"
-C_BG = "#0A0F1C"
-C_CARD = "#111827"
-C_TEXT = "#E6EDF3"
-C_TEXT2 = "#8B949E"
+C_BG = "#0B0F19"
+C_CARD = "#151C2C"
+C_TEXT = "#F1F5F9"
+C_TEXT2 = "#94A3B8"
+C_MUTED = "#64748B"
+C_BORDER = "rgba(255,255,255,0.08)"
 
 
 def _get_logo_b64():
@@ -33,16 +35,14 @@ def render_landing_page():
 
     logo_b64 = _get_logo_b64()
 
-    # Full-width dark styling
+    # Full-width dark styling — Stripe-inspired
     st.markdown(f"""<style>
-        /* Hide default Streamlit chrome */
         #MainMenu, header[data-testid="stHeader"], footer,
         .stDeployButton, div[data-testid="stToolbar"] {{display:none!important;}}
         section[data-testid="stSidebar"] {{display:none!important;}}
         .block-container {{max-width:1100px!important; padding-top:1rem!important;}}
-        .stApp {{background: linear-gradient(160deg, {C_BG} 0%, #0E1A2E 50%, {C_BG} 100%);}}
+        .stApp {{background: {C_BG} !important;}}
 
-        /* Button styling */
         .stButton > button[kind="primary"] {{
             background: linear-gradient(135deg, {C_ACCENT}, {C_TURQUOISE}) !important;
             border: none !important;
@@ -50,25 +50,26 @@ def render_landing_page():
             padding: 0.7rem 2.5rem !important;
             font-size: 1.05rem !important;
             font-weight: 600 !important;
-            border-radius: 50px !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 4px 20px rgba(26,109,182,0.35) !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
         }}
         .stButton > button[kind="primary"]:hover {{
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 30px rgba(26,109,182,0.5) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(26,109,182,0.35) !important;
         }}
         .stButton > button[kind="secondary"] {{
             background: transparent !important;
-            border: 1.5px solid {C_TURQUOISE} !important;
-            color: {C_TURQUOISE} !important;
+            border: 1px solid {C_BORDER} !important;
+            color: {C_TEXT2} !important;
             padding: 0.6rem 2rem !important;
             font-size: 0.95rem !important;
             font-weight: 500 !important;
-            border-radius: 50px !important;
+            border-radius: 8px !important;
         }}
         .stButton > button[kind="secondary"]:hover {{
-            background: rgba(108,185,182,0.1) !important;
+            background: rgba(255,255,255,0.04) !important;
+            color: {C_TEXT} !important;
         }}
         div[data-testid="stVerticalBlock"] > div {{
             gap: 0.3rem;
@@ -159,10 +160,10 @@ def render_landing_page():
                 icon, title, desc = features[i + j]
                 with col:
                     st.markdown(f"""
-                    <div style="background:{C_CARD}; border:1px solid rgba(108,185,182,0.15); border-radius:16px;
-                                padding:1.5rem; min-height:180px; transition:all 0.3s ease;">
+                    <div style="background:{C_CARD}; border:1px solid {C_BORDER}; border-radius:12px;
+                                padding:1.5rem; min-height:180px; transition:border-color 0.2s ease;">
                         <div style="font-size:2rem; margin-bottom:0.6rem;">{icon}</div>
-                        <h4 style="color:white; font-size:1rem; font-weight:600; margin-bottom:0.4rem;">{title}</h4>
+                        <h4 style="color:{C_TEXT}; font-size:1rem; font-weight:600; margin-bottom:0.4rem;">{title}</h4>
                         <p style="color:{C_TEXT2}; font-size:0.85rem; line-height:1.5;">{desc}</p>
                     </div>
                     """, unsafe_allow_html=True)
@@ -171,9 +172,9 @@ def render_landing_page():
 
     # ===== BOTTOM CTA SECTION =====
     st.markdown(f"""
-    <div style="text-align:center; background: linear-gradient(135deg, rgba(34,47,98,0.4), rgba(26,109,182,0.2));
-                border-radius:20px; padding:3rem 2rem; border:1px solid rgba(108,185,182,0.1);">
-        <h2 style="color:white; font-size:1.8rem; font-weight:700; margin-bottom:0.5rem;">
+    <div style="text-align:center; background: {C_CARD};
+                border-radius:12px; padding:3rem 2rem; border:1px solid {C_BORDER};">
+        <h2 style="color:{C_TEXT}; font-size:1.8rem; font-weight:700; margin-bottom:0.5rem;">
             Ready to Transform Your Research?
         </h2>
         <p style="color:{C_TEXT2}; font-size:1rem; margin-bottom:0.3rem;">

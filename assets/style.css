@@ -1,22 +1,21 @@
 /* ==========================================================
-   TAM Capital Research Terminal — Liquid Glass Design System
-   Apple visionOS-inspired glass + TAM Brand Identity
-   Rich & Polished motion: orbs, chart entrances, glow, pulse
+   TAM Capital Research Terminal — Stripe Dashboard Theme
+   Clean, structured, professional dark UI
    ========================================================== */
 
-/* --- Fonts: Inter for UI, Bahij Janna for Arabic --- */
+/* --- Fonts: Inter for UI --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* --- CSS Custom Properties — TAM Brand + Liquid Glass --- */
+/* --- CSS Custom Properties — Stripe-inspired Dark --- */
 :root {
-    /* Backgrounds */
-    --bg-void: #070B14;
-    --bg-deep: #0C1220;
-    --bg-surface: #111A2E;
-    --bg-glass: rgba(34, 47, 98, 0.12);
-    --bg-glass-hover: rgba(34, 47, 98, 0.20);
-    --bg-glass-active: rgba(34, 47, 98, 0.28);
-    --bg-glass-card: rgba(26, 38, 78, 0.15);
+    /* Backgrounds — layered grays, NOT pure black */
+    --bg-base: #0B0F19;
+    --bg-surface: #111827;
+    --bg-elevated: #1A2236;
+    --bg-card: #151C2C;
+    --bg-card-hover: #1C2540;
+    --bg-input: #0D1220;
+    --bg-sidebar: #0E1425;
 
     /* TAM Brand Palette */
     --tam-deep: #222F62;
@@ -25,22 +24,20 @@
     --tam-green: #22C55E;
     --tam-dark-carbon: #0E1A24;
 
-    /* Glass Borders */
-    --border-glass: rgba(108, 185, 182, 0.08);
-    --border-glass-hover: rgba(108, 185, 182, 0.18);
-    --border-glass-active: rgba(26, 109, 182, 0.30);
-    --border-glow: rgba(108, 185, 182, 0.25);
+    /* Borders — visible but subtle */
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.14);
+    --border-active: rgba(26, 109, 182, 0.40);
+    --border-accent: rgba(108, 185, 182, 0.30);
 
     /* Accent System */
     --accent-primary: #1A6DB6;
     --accent-secondary: #6CB9B6;
-    --accent-glow: rgba(26, 109, 182, 0.30);
-    --accent-glow-tq: rgba(108, 185, 182, 0.20);
-    --accent-gradient: linear-gradient(135deg, #222F62 0%, #1A6DB6 50%, #6CB9B6 100%);
-    --accent-gradient-subtle: linear-gradient(135deg, rgba(34,47,98,0.20) 0%, rgba(26,109,182,0.12) 50%, rgba(108,185,182,0.08) 100%);
-    --accent-gradient-text: linear-gradient(135deg, #5B9BD5 0%, #6CB9B6 60%, #8DD8D0 100%);
+    --accent-glow: rgba(26, 109, 182, 0.25);
+    --accent-gradient: linear-gradient(135deg, #1A6DB6 0%, #6CB9B6 100%);
+    --accent-gradient-subtle: linear-gradient(135deg, rgba(26,109,182,0.12) 0%, rgba(108,185,182,0.06) 100%);
 
-    /* Semantic Colors (green = TAM logo green for growth) */
+    /* Semantic */
     --success: #22C55E;
     --success-bg: rgba(34, 197, 94, 0.10);
     --warning: #F59E0B;
@@ -49,43 +46,31 @@
     --danger-bg: rgba(239, 68, 68, 0.10);
     --info: #1A6DB6;
 
-    /* Text */
-    --text-primary: #E6EDF3;
-    --text-secondary: #8B949E;
-    --text-muted: #4A5568;
-    --text-dim: #2D3748;
+    /* Text — HIGH CONTRAST on dark backgrounds */
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --text-dim: #475569;
 
-    /* Radii */
-    --radius-xs: 6px;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
-    --radius-2xl: 24px;
+    /* Radii — Stripe uses subtle rounding */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
     --radius-full: 9999px;
 
-    /* Glass Blur */
-    --blur-light: 12px;
-    --blur-medium: 24px;
-    --blur-heavy: 40px;
-    --blur-sidebar: 48px;
-
     /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-    --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
-    --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
-    --shadow-glass: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
-    --shadow-glow: 0 0 20px var(--accent-glow);
-    --shadow-glow-tq: 0 0 24px var(--accent-glow-tq);
-    --shadow-glow-lg: 0 0 40px var(--accent-glow), 0 0 80px var(--accent-glow-tq);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
 
     /* Transitions */
     --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --t-fast: 0.15s var(--ease-out);
-    --t-base: 0.25s var(--ease-out);
-    --t-slow: 0.4s var(--ease-out);
-    --t-spring: 0.5s var(--ease-spring);
+    --t-fast: 0.12s var(--ease-out);
+    --t-base: 0.2s var(--ease-out);
+    --t-slow: 0.35s var(--ease-out);
 }
 
 
@@ -100,90 +85,55 @@ div[data-testid="stToolbar"] { display: none; }
 
 
 /* ==========================================================
-   GLOBAL BACKGROUND — Ultra-dark + TAM Blue Orbs
+   GLOBAL BACKGROUND
    ========================================================== */
 .stApp {
-    background: var(--bg-void);
+    background: var(--bg-base) !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    position: relative;
-    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Floating Gradient Orb 1 — Top-left, TAM Deep Blue */
-.stApp::before {
-    content: '';
-    position: fixed;
-    top: -15%;
-    left: -8%;
-    width: 55%;
-    height: 55%;
-    background: radial-gradient(ellipse, rgba(34, 47, 98, 0.12) 0%, rgba(34, 47, 98, 0.04) 40%, transparent 70%);
-    animation: orbDrift1 28s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Floating Gradient Orb 2 — Bottom-right, TAM Turquoise */
-.stApp::after {
-    content: '';
-    position: fixed;
-    bottom: -18%;
-    right: -10%;
-    width: 50%;
-    height: 50%;
-    background: radial-gradient(ellipse, rgba(108, 185, 182, 0.06) 0%, rgba(26, 109, 182, 0.03) 40%, transparent 70%);
-    animation: orbDrift2 34s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* App Container */
 [data-testid="stAppViewContainer"] {
     background: transparent !important;
     color: var(--text-primary) !important;
-    position: relative;
-    z-index: 1;
 }
 
 [data-testid="stAppViewContainer"] > .main {
     background: transparent !important;
 }
 
-
-/* ==========================================================
-   SIDEBAR — Frosted Glass Nav Panel
-   ========================================================== */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg,
-        rgba(12, 18, 32, 0.96) 0%,
-        rgba(7, 11, 20, 0.98) 100%) !important;
-    backdrop-filter: blur(var(--blur-sidebar));
-    -webkit-backdrop-filter: blur(var(--blur-sidebar));
-    border-right: 1px solid var(--border-glass) !important;
-    width: 280px !important;
+/* Main content area — constrain width for readability */
+.block-container {
+    max-width: 1200px !important;
+    padding-top: 1rem !important;
+    padding-bottom: 2rem !important;
 }
 
-/* Top accent — TAM gradient glow */
+
+/* ==========================================================
+   SIDEBAR — Clean Nav Panel (Stripe-like)
+   ========================================================== */
+[data-testid="stSidebar"] {
+    background: var(--bg-sidebar) !important;
+    border-right: 1px solid var(--border-default) !important;
+    width: 260px !important;
+}
+
+/* Top accent line — TAM gradient */
 [data-testid="stSidebar"]::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
     background: var(--accent-gradient);
-    opacity: 0.5;
+    opacity: 0.6;
     z-index: 10;
 }
 
-/* Subtle blue orb in sidebar */
+/* Remove the glass orb from sidebar */
 [data-testid="stSidebar"]::after {
-    content: '';
-    position: absolute;
-    top: 30%;
-    left: -20%;
-    width: 80%;
-    height: 30%;
-    background: radial-gradient(ellipse, rgba(34, 47, 98, 0.06) 0%, transparent 70%);
-    pointer-events: none;
+    display: none;
 }
 
 [data-testid="stSidebar"] * {
@@ -191,26 +141,26 @@ div[data-testid="stToolbar"] { display: none; }
 }
 
 [data-testid="stSidebar"] p {
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     line-height: 1.5;
 }
 
 [data-testid="stSidebar"] hr {
-    border-color: var(--border-glass) !important;
-    margin: 0.75rem 0;
+    border-color: var(--border-default) !important;
+    margin: 0.6rem 0;
 }
 
-/* Section Labels */
+/* Section labels — small uppercase */
 [data-testid="stSidebar"] .stMarkdown p[style*="text-transform: uppercase"] {
-    color: var(--text-muted) !important;
+    color: var(--text-dim) !important;
     font-weight: 600;
     font-size: 0.6rem !important;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.14em;
 }
 
 
 /* ==========================================================
-   NAV BUTTONS — Glass with Active State
+   NAV BUTTONS — Clean with Active State
    ========================================================== */
 [data-testid="stSidebar"] .stButton button {
     background: transparent !important;
@@ -219,48 +169,42 @@ div[data-testid="stToolbar"] { display: none; }
     border-radius: var(--radius-md) !important;
     width: 100%;
     text-align: left;
-    padding: 10px 14px !important;
-    font-size: 0.85rem !important;
+    padding: 9px 12px !important;
+    font-size: 0.84rem !important;
     font-weight: 500 !important;
     transition: all var(--t-base);
-    position: relative;
-    overflow: hidden;
 }
 
 [data-testid="stSidebar"] .stButton button:hover {
-    background: var(--bg-glass) !important;
-    border-color: var(--border-glass) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
     color: var(--text-primary) !important;
-    transform: translateX(3px);
 }
 
 [data-testid="stSidebar"] .stButton button:active {
-    background: var(--bg-glass-active) !important;
-    transform: translateX(3px) scale(0.98);
+    background: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Active nav — TAM gradient glow */
+/* Active nav — highlighted with accent */
 [data-testid="stSidebar"] .stButton button[kind="primary"] {
-    background: var(--accent-gradient-subtle) !important;
-    border: 1px solid var(--border-glass-active) !important;
+    background: rgba(26, 109, 182, 0.12) !important;
+    border: 1px solid rgba(26, 109, 182, 0.25) !important;
     color: var(--text-primary) !important;
     font-weight: 600 !important;
-    box-shadow: var(--shadow-glow);
 }
 
+/* Active indicator bar */
 [data-testid="stSidebar"] .stButton button[kind="primary"]::before {
     content: '';
     position: absolute;
-    left: 0; top: 18%; bottom: 18%;
+    left: 0; top: 20%; bottom: 20%;
     width: 3px;
     background: var(--accent-gradient);
     border-radius: 0 3px 3px 0;
-    animation: pulseGlow 3s ease-in-out infinite;
 }
 
 
 /* ==========================================================
-   SIDEBAR INPUTS — Glass Style
+   SIDEBAR INPUTS
    ========================================================== */
 [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
     background: var(--tam-blue) !important;
@@ -273,9 +217,9 @@ div[data-testid="stToolbar"] { display: none; }
 }
 
 [data-testid="stSidebar"] .streamlit-expanderHeader {
-    background: var(--bg-glass) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
     border-radius: var(--radius-sm) !important;
-    border: 1px solid var(--border-glass) !important;
+    border: 1px solid var(--border-default) !important;
     font-size: 0.82rem !important;
     padding: 8px 12px !important;
 }
@@ -283,8 +227,8 @@ div[data-testid="stToolbar"] { display: none; }
 [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"],
 [data-testid="stSidebar"] .stTextInput input,
 [data-testid="stSidebar"] .stNumberInput input {
-    background: var(--bg-glass) !important;
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--text-primary) !important;
     font-size: 0.82rem !important;
@@ -294,42 +238,27 @@ div[data-testid="stToolbar"] { display: none; }
 [data-testid="stSidebar"] .stTextInput input:focus,
 [data-testid="stSidebar"] .stNumberInput input:focus {
     border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+    box-shadow: 0 0 0 2px var(--accent-glow) !important;
 }
 
 
 /* ==========================================================
-   LIQUID GLASS CARDS — Medium Frost (24px blur)
+   CARDS — Solid Dark Cards with Subtle Border
    ========================================================== */
 
 /* Chat Messages */
 [data-testid="stChatMessage"] {
-    background: var(--bg-glass-card) !important;
-    backdrop-filter: blur(var(--blur-medium));
-    -webkit-backdrop-filter: blur(var(--blur-medium));
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-lg) !important;
-    padding: 20px 24px !important;
-    margin-bottom: 16px !important;
-    box-shadow: var(--shadow-glass);
-    transition: all var(--t-base);
-    animation: glassReveal 0.4s var(--ease-out);
+    padding: 18px 22px !important;
+    margin-bottom: 12px !important;
+    box-shadow: var(--shadow-card);
+    transition: border-color var(--t-base);
 }
 
-/* Glass light refraction — top edge */
-[data-testid="stChatMessage"]::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 10%; right: 10%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(108,185,182,0.15), transparent);
-}
-
-/* Hover glow & lift */
 [data-testid="stChatMessage"]:hover {
-    border-color: var(--border-glass-hover) !important;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-glass), var(--shadow-glow-tq);
+    border-color: var(--border-hover) !important;
 }
 
 [data-testid="stChatMessage"] p,
@@ -344,62 +273,57 @@ div[data-testid="stToolbar"] { display: none; }
 }
 
 [data-testid="stChatMessage"] code {
-    background: rgba(26, 109, 182, 0.15) !important;
+    background: rgba(26, 109, 182, 0.12) !important;
     color: var(--accent-secondary) !important;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.85em;
 }
 
-/* User message — TAM blue left border */
+/* User message — accent left border */
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-    border-left: 2px solid var(--tam-blue) !important;
+    border-left: 3px solid var(--tam-blue) !important;
 }
 
 
 /* ==========================================================
-   METRIC CARDS — Glass + Hover Glow + Pulse
+   METRIC CARDS — Clean with Top Accent
    ========================================================== */
 [data-testid="stMetric"] {
-    background: var(--bg-glass-card) !important;
-    backdrop-filter: blur(var(--blur-medium));
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-lg) !important;
     padding: 16px 20px !important;
-    box-shadow: var(--shadow-glass);
+    box-shadow: var(--shadow-card);
     transition: all var(--t-base);
     position: relative;
     overflow: hidden;
-    animation: metricReveal 0.5s var(--ease-out) both;
 }
 
-/* Top refraction line */
+/* Top accent line */
 [data-testid="stMetric"]::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 1px;
+    height: 2px;
     background: var(--accent-gradient);
-    opacity: 0.15;
+    opacity: 0.2;
     transition: opacity var(--t-base);
 }
 
-/* Hover: lift + glow */
 [data-testid="stMetric"]:hover {
-    border-color: var(--border-glass-hover) !important;
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md), var(--shadow-glow);
+    border-color: var(--border-hover) !important;
 }
 
 [data-testid="stMetric"]:hover::before {
-    opacity: 0.4;
+    opacity: 0.5;
 }
 
 [data-testid="stMetric"] [data-testid="stMetricLabel"] {
     color: var(--text-muted) !important;
     font-size: 0.7rem !important;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     font-weight: 600;
 }
 
@@ -413,120 +337,95 @@ div[data-testid="stToolbar"] { display: none; }
     display: none;
 }
 
-/* Staggered entrance for metric rows */
-[data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] { animation-delay: 0s; }
-[data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] { animation-delay: 0.08s; }
-[data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] { animation-delay: 0.16s; }
-[data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] { animation-delay: 0.24s; }
-[data-testid="stHorizontalBlock"] > div:nth-child(5) [data-testid="stMetric"] { animation-delay: 0.32s; }
+/* Staggered entrance */
+[data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] { animation: fadeUp 0.3s var(--ease-out) both; animation-delay: 0s; }
+[data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] { animation: fadeUp 0.3s var(--ease-out) both; animation-delay: 0.06s; }
+[data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] { animation: fadeUp 0.3s var(--ease-out) both; animation-delay: 0.12s; }
+[data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] { animation: fadeUp 0.3s var(--ease-out) both; animation-delay: 0.18s; }
+[data-testid="stHorizontalBlock"] > div:nth-child(5) [data-testid="stMetric"] { animation: fadeUp 0.3s var(--ease-out) both; animation-delay: 0.24s; }
 
 
 /* ==========================================================
-   HEADINGS
+   HEADINGS — Stripe typography
    ========================================================== */
 h1 {
     color: var(--text-primary) !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.04em;
-    font-size: 2rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em;
+    font-size: 1.75rem !important;
 }
 h2 {
     color: var(--text-primary) !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.03em;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em;
+    font-size: 1.35rem !important;
 }
 h3 {
     color: var(--text-primary) !important;
     font-weight: 600 !important;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
+    font-size: 1.1rem !important;
 }
 h4 {
     color: var(--text-secondary) !important;
     font-weight: 600 !important;
-    font-size: 1rem !important;
+    font-size: 0.95rem !important;
 }
 
 
 /* ==========================================================
-   DOWNLOAD BUTTONS — Gradient Glass + Shimmer
+   BUTTONS — Gradient Primary + Clean Secondary
    ========================================================== */
-.stDownloadButton button {
+.stDownloadButton button,
+.stButton > button[kind="primary"]:not([data-testid="stSidebar"] button) {
     background: var(--accent-gradient) !important;
     color: white !important;
     border: none !important;
     border-radius: var(--radius-md) !important;
-    padding: 12px 24px !important;
+    padding: 10px 20px !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
-    box-shadow: var(--shadow-glow) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
     transition: all var(--t-base) !important;
-    position: relative;
-    overflow: hidden;
-    background-size: 200% 100%;
-    animation: gradientFlow 5s ease infinite;
 }
 
-.stDownloadButton button::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
-    transition: left 0.6s ease;
+.stDownloadButton button:hover,
+.stButton > button[kind="primary"]:not([data-testid="stSidebar"] button):hover {
+    opacity: 0.9;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(26,109,182,0.3) !important;
 }
 
-.stDownloadButton button:hover {
-    transform: translateY(-2px) scale(1.02) !important;
-    box-shadow: var(--shadow-glow-lg) !important;
-}
-
-.stDownloadButton button:hover::after {
-    left: 100%;
-}
-
-.stDownloadButton button:active {
-    transform: translateY(0) scale(0.98) !important;
+.stDownloadButton button:active,
+.stButton > button[kind="primary"]:not([data-testid="stSidebar"] button):active {
+    transform: translateY(0) !important;
 }
 
 
 /* ==========================================================
-   STATUS / LOADING — Shimmer Glass
+   STATUS / LOADING
    ========================================================== */
 .stStatus {
-    background: var(--bg-glass) !important;
-    backdrop-filter: blur(var(--blur-light));
-    border-radius: var(--radius-lg) !important;
-    border: 1px solid var(--border-glass) !important;
-    box-shadow: var(--shadow-sm);
+    background: var(--bg-card) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-default) !important;
 }
 
 .stStatus [data-testid="stStatusWidget"] {
     color: var(--text-secondary) !important;
 }
 
-/* Shimmer while loading */
-.stStatus[data-stale="false"] {
-    background: linear-gradient(90deg,
-        var(--bg-glass) 25%,
-        rgba(26, 109, 182, 0.06) 50%,
-        var(--bg-glass) 75%) !important;
-    background-size: 200% 100%;
-    animation: shimmer 2.5s ease-in-out infinite;
-}
-
 
 /* ==========================================================
-   CHAT INPUT — Floating Glass Bar
+   CHAT INPUT — ChatGPT-style Centered Input Bar
    ========================================================== */
 [data-testid="stChatInput"] {
     background: transparent !important;
 }
 
 [data-testid="stChatInput"] textarea {
-    background: rgba(12, 18, 32, 0.90) !important;
-    backdrop-filter: blur(var(--blur-heavy));
-    -webkit-backdrop-filter: blur(var(--blur-heavy));
-    border: 1px solid var(--border-glass-hover) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-hover) !important;
     border-radius: var(--radius-xl) !important;
     padding: 14px 20px !important;
     font-size: 0.95rem !important;
@@ -536,12 +435,12 @@ h4 {
 }
 
 [data-testid="stChatInput"] textarea::placeholder {
-    color: var(--text-muted) !important;
+    color: var(--text-dim) !important;
 }
 
 [data-testid="stChatInput"] textarea:focus {
     border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-md) !important;
+    box-shadow: 0 0 0 2px var(--accent-glow), var(--shadow-md) !important;
 }
 
 /* Submit button */
@@ -549,15 +448,14 @@ h4 {
     background: var(--accent-gradient) !important;
     border: none !important;
     border-radius: 50% !important;
-    width: 40px !important;
-    height: 40px !important;
-    box-shadow: var(--shadow-glow) !important;
-    transition: all var(--t-spring) !important;
+    width: 38px !important;
+    height: 38px !important;
+    transition: all var(--t-base) !important;
 }
 
 [data-testid="stChatInput"] button:hover {
-    transform: scale(1.12) !important;
-    box-shadow: var(--shadow-glow-lg) !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 2px 8px rgba(26,109,182,0.35) !important;
 }
 
 [data-testid="stChatInput"] button svg {
@@ -567,14 +465,13 @@ h4 {
 
 
 /* ==========================================================
-   TABS — Segmented Glass Control
+   TABS — Clean Segmented Control
    ========================================================== */
 .stTabs [data-baseweb="tab-list"] {
     gap: 0;
-    background: var(--bg-glass) !important;
-    backdrop-filter: blur(var(--blur-light));
+    background: var(--bg-card) !important;
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-glass);
+    border: 1px solid var(--border-default);
     padding: 3px;
 }
 
@@ -582,19 +479,19 @@ h4 {
     color: var(--text-muted) !important;
     border-radius: var(--radius-sm);
     font-weight: 500;
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     padding: 8px 16px;
     transition: all var(--t-base);
 }
 
 .stTabs [data-baseweb="tab"]:hover {
     color: var(--text-secondary) !important;
-    background: var(--bg-glass) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .stTabs [aria-selected="true"] {
     color: var(--text-primary) !important;
-    background: var(--bg-glass-active) !important;
+    background: rgba(26, 109, 182, 0.12) !important;
     font-weight: 600;
 }
 
@@ -610,11 +507,11 @@ h4 {
 
 
 /* ==========================================================
-   EXPANDERS — Glass
+   EXPANDERS
    ========================================================== */
 .streamlit-expanderHeader {
-    background: var(--bg-glass) !important;
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-md) !important;
     color: var(--text-secondary) !important;
     font-weight: 500 !important;
@@ -622,28 +519,26 @@ h4 {
 }
 
 .streamlit-expanderHeader:hover {
-    background: var(--bg-glass-hover) !important;
-    border-color: var(--border-glass-hover) !important;
+    background: var(--bg-card-hover) !important;
+    border-color: var(--border-hover) !important;
 }
 
 .streamlit-expanderContent {
-    background: rgba(12, 18, 32, 0.6) !important;
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-default) !important;
     border-top: none !important;
     border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
 }
 
 
 /* ==========================================================
-   TABLES — Finance Dashboard + Glass
+   TABLES — Finance Dashboard
    ========================================================== */
 [data-testid="stTable"] {
-    background: var(--bg-glass-card) !important;
-    backdrop-filter: blur(var(--blur-medium));
+    background: var(--bg-card) !important;
     border-radius: var(--radius-lg) !important;
     overflow: hidden;
-    border: 1px solid var(--border-glass) !important;
-    animation: glassReveal 0.4s var(--ease-out);
+    border: 1px solid var(--border-default) !important;
 }
 
 table {
@@ -652,7 +547,7 @@ table {
 }
 
 table thead tr {
-    background: rgba(34, 47, 98, 0.15) !important;
+    background: rgba(26, 109, 182, 0.08) !important;
 }
 
 table thead th {
@@ -660,7 +555,7 @@ table thead th {
     font-weight: 600 !important;
     font-size: 0.7rem !important;
     padding: 12px 16px !important;
-    border-bottom: 1px solid var(--border-glass) !important;
+    border-bottom: 1px solid var(--border-default) !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -669,31 +564,27 @@ table tbody td {
     color: var(--text-secondary) !important;
     font-size: 0.85rem !important;
     padding: 10px 16px !important;
-    border-bottom: 1px solid rgba(108,185,182,0.03) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.03) !important;
     transition: background var(--t-fast);
 }
 
 table tbody tr:hover td {
-    background: var(--bg-glass-hover) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
 }
 
 
 /* ==========================================================
-   CHARTS / IMAGES — Glass Frame + Reveal Animation
+   CHARTS / IMAGES
    ========================================================== */
 [data-testid="stImage"] {
     border-radius: var(--radius-lg);
     overflow: hidden;
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--shadow-glass);
-    transition: all var(--t-base);
-    animation: chartReveal 0.6s var(--ease-out) both;
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-card);
 }
 
 [data-testid="stImage"]:hover {
-    border-color: var(--border-glass-hover);
-    box-shadow: var(--shadow-md), var(--shadow-glow-tq);
-    transform: translateY(-2px);
+    border-color: var(--border-hover);
 }
 
 [data-testid="stImage"] img {
@@ -702,16 +593,15 @@ table tbody tr:hover td {
 
 
 /* ==========================================================
-   ALERTS — Glass
+   ALERTS
    ========================================================== */
 .stAlert {
-    backdrop-filter: blur(var(--blur-light));
     border-radius: var(--radius-md) !important;
 }
 
 [data-testid="stAlert"] > div[role="alert"] {
-    background: var(--bg-glass) !important;
-    border: 1px solid var(--border-glass) !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-md) !important;
     color: var(--text-secondary) !important;
 }
@@ -721,11 +611,64 @@ table tbody tr:hover td {
    TOAST
    ========================================================== */
 [data-testid="stToast"] {
-    background: rgba(12, 18, 32, 0.95) !important;
-    backdrop-filter: blur(var(--blur-heavy));
-    border: 1px solid var(--border-glass-hover) !important;
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-hover) !important;
     border-radius: var(--radius-md) !important;
     box-shadow: var(--shadow-lg);
+}
+
+
+/* ==========================================================
+   FORM INPUTS — Global (not just sidebar)
+   ========================================================== */
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--text-primary) !important;
+    font-size: 0.9rem !important;
+}
+
+.stTextInput input:focus,
+.stNumberInput input:focus,
+.stTextArea textarea:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 2px var(--accent-glow) !important;
+}
+
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: var(--text-dim) !important;
+}
+
+/* Select boxes */
+[data-baseweb="select"] {
+    background: var(--bg-input) !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+[data-baseweb="select"] > div {
+    background: var(--bg-input) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Dropdown menus */
+[data-baseweb="popover"] {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-hover) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+[data-baseweb="popover"] li {
+    color: var(--text-secondary) !important;
+    transition: all var(--t-fast);
+}
+[data-baseweb="popover"] li:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: var(--text-primary) !important;
 }
 
 
@@ -738,154 +681,189 @@ table tbody tr:hover td {
     border-top-color: var(--tam-turquoise) !important;
 }
 
-/* Scrollbar */
+/* Scrollbar — thin and subtle */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(108,185,182,0.12); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(108,185,182,0.25); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 
 /* Links */
 a { color: var(--accent-secondary) !important; text-decoration: none !important; transition: color var(--t-fast); }
 a:hover { color: #8DD8D0 !important; }
 
 /* Dividers */
-hr { border-color: var(--border-glass) !important; margin: 1.25rem 0 !important; }
-
-/* Dropdowns */
-[data-baseweb="select"] { background: var(--bg-glass) !important; border-radius: var(--radius-sm) !important; }
-[data-baseweb="popover"] {
-    background: var(--bg-deep) !important;
-    border: 1px solid var(--border-glass-hover) !important;
-    border-radius: var(--radius-md) !important;
-    box-shadow: var(--shadow-lg) !important;
-}
-[data-baseweb="popover"] li { color: var(--text-secondary) !important; transition: all var(--t-fast); }
-[data-baseweb="popover"] li:hover { background: var(--bg-glass-hover) !important; color: var(--text-primary) !important; }
+hr { border-color: var(--border-default) !important; margin: 1rem 0 !important; }
 
 /* Column gaps */
-[data-testid="stHorizontalBlock"] { gap: 16px; }
+[data-testid="stHorizontalBlock"] { gap: 14px; }
 
-/* General text */
+/* General text — MUST BE READABLE */
 .stMarkdown { color: var(--text-secondary) !important; }
-.stMarkdown p { color: var(--text-secondary) !important; }
+.stMarkdown p { color: var(--text-secondary) !important; line-height: 1.6; }
 
 /* Main content buttons */
 .stButton > button { transition: all var(--t-base); }
 .stButton > button:hover { transform: translateY(-1px); }
 
+/* Multiselect & checkbox labels */
+.stMultiSelect label,
+.stCheckbox label,
+.stRadio label,
+.stSelectbox label {
+    color: var(--text-secondary) !important;
+    font-size: 0.84rem !important;
+}
+
 
 /* ==========================================================
-   ANIMATIONS — Rich & Polished
+   BRANDED HEADER BAR — for main content area
    ========================================================== */
-
-/* --- 1. FLOATING GRADIENT ORBS --- */
-@keyframes orbDrift1 {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
-    25%  { transform: translate(4%, 10%) scale(1.08); opacity: 0.8; }
-    50%  { transform: translate(-2%, 18%) scale(0.95); opacity: 1; }
-    75%  { transform: translate(7%, 6%) scale(1.04); opacity: 0.85; }
+.tam-header-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-default);
 }
 
-@keyframes orbDrift2 {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
-    25%  { transform: translate(-5%, -8%) scale(1.06); opacity: 0.85; }
-    50%  { transform: translate(3%, -14%) scale(0.96); opacity: 1; }
-    75%  { transform: translate(-4%, -4%) scale(1.07); opacity: 0.9; }
+.tam-header-bar img {
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+}
+
+.tam-header-bar .tam-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+.tam-header-bar .tam-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.tam-header-bar .tam-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--tam-turquoise);
+    background: rgba(108, 185, 182, 0.1);
+    border: 1px solid rgba(108, 185, 182, 0.2);
+    border-radius: var(--radius-full);
+    padding: 3px 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 
-/* --- 2. CHART / IMAGE ENTRANCE --- */
-@keyframes chartReveal {
+/* ==========================================================
+   MARKET OVERVIEW CARDS — empty state for Research page
+   ========================================================== */
+.market-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: border-color var(--t-base);
+}
+
+.market-card:hover {
+    border-color: var(--border-hover);
+}
+
+.market-card-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+}
+
+.market-card-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.market-card-delta {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.market-card-delta.positive { color: var(--success); }
+.market-card-delta.negative { color: var(--danger); }
+
+
+/* ==========================================================
+   QUICK ACTION CHIPS — for Research empty state
+   ========================================================== */
+.quick-chip {
+    display: inline-block;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--t-base);
+    margin: 4px;
+}
+
+.quick-chip:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+    background: rgba(26, 109, 182, 0.08);
+}
+
+
+/* ==========================================================
+   ANIMATIONS — Subtle & Professional
+   ========================================================== */
+@keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(16px) scale(0.97);
-        filter: blur(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-}
-
-
-/* --- 3. GLASS CARD REVEAL --- */
-@keyframes glassReveal {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-        backdrop-filter: blur(0);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
-        backdrop-filter: blur(var(--blur-medium));
     }
 }
 
-
-/* --- 4. METRIC CARD REVEAL (scale + fade) --- */
-@keyframes metricReveal {
-    from {
-        opacity: 0;
-        transform: scale(0.92) translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-
-/* --- 5. SHIMMER (loading) --- */
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-
-/* --- 6. PULSE GLOW (active nav indicator) --- */
-@keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 4px var(--accent-glow); opacity: 0.7; }
-    50%  { box-shadow: 0 0 16px var(--accent-glow), 0 0 32px var(--accent-glow-tq); opacity: 1; }
-}
-
-
-/* --- 7. GRADIENT FLOW (download buttons) --- */
-@keyframes gradientFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-
-/* --- 8. DATA PULSE (live metrics flash) --- */
+/* Data pulse — for live metrics */
 @keyframes dataPulse {
     0% { opacity: 1; }
-    15% { opacity: 0.5; background: rgba(34, 197, 94, 0.08); }
+    15% { opacity: 0.5; background: rgba(34, 197, 94, 0.06); }
     100% { opacity: 1; background: transparent; }
 }
 
 @keyframes dataPulseRed {
     0% { opacity: 1; }
-    15% { opacity: 0.5; background: rgba(239, 68, 68, 0.08); }
+    15% { opacity: 0.5; background: rgba(239, 68, 68, 0.06); }
     100% { opacity: 1; background: transparent; }
 }
 
-/* Utility class for live pulse on positive changes */
-.data-pulse-green {
-    animation: dataPulse 1.2s ease-out;
-}
-
-.data-pulse-red {
-    animation: dataPulseRed 1.2s ease-out;
-}
+.data-pulse-green { animation: dataPulse 1.2s ease-out; }
+.data-pulse-red { animation: dataPulseRed 1.2s ease-out; }
 
 
 /* ==========================================================
    RESPONSIVE
    ========================================================== */
 @media (max-width: 768px) {
-    [data-testid="stSidebar"] { width: 240px !important; }
-    h1 { font-size: 1.5rem !important; }
+    [data-testid="stSidebar"] { width: 220px !important; }
+    h1 { font-size: 1.4rem !important; }
+    .block-container { padding-top: 0.5rem !important; }
 }

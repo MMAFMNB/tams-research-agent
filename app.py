@@ -225,62 +225,68 @@ def get_logo_base64():
 
 LOGO_B64 = get_logo_base64()
 
-# TAM Brand colors (used in sidebar and UI accents)
-C_TURQUOISE = "#6CB9B6"
-C_ACCENT = "#1A6DB6"
+# ==========================================================
+# DESIGN SYSTEM — Stripe Dashboard Theme (must match CSS vars)
+# ==========================================================
+
+# Backgrounds
+C_BG = "#0B0F19"
+C_SURFACE = "#111827"
+C_CARD = "#151C2C"
+C_CARD_HOVER = "#1C2540"
+C_INPUT = "#0D1220"
+
+# TAM Brand Palette
 C_DEEP = "#222F62"
-
-
-# ==========================================================
-# DESIGN SYSTEM — Reusable HTML Components
-# ==========================================================
-
-# Color palette — TAM Brand + Liquid Glass (must match CSS vars)
-C_BG = "#070B14"
-C_CARD = "rgba(26,38,78,0.15)"
-C_GLASS = "rgba(34,47,98,0.12)"
-C_BORDER = "rgba(108,185,182,0.08)"
-C_BORDER_HOVER = "rgba(108,185,182,0.18)"
-C_ACCENT = "#1A6DB6"       # TAM Light Blue
-C_ACCENT2 = "#6CB9B6"      # TAM Turquoise
-C_DEEP = "#222F62"          # TAM Deep Blue
-C_TEXT = "#E6EDF3"
-C_TEXT2 = "#8B949E"
-C_MUTED = "#4A5568"
-C_GREEN = "#22C55E"         # TAM Logo Green = Success/Growth
+C_ACCENT = "#1A6DB6"
+C_TURQUOISE = "#6CB9B6"
+C_ACCENT2 = "#6CB9B6"        # alias
+C_CYAN = "#6CB9B6"            # alias (used in alerts)
+C_GREEN = "#22C55E"
 C_RED = "#EF4444"
 C_ORANGE = "#F59E0B"
 
-ACCENT_GRADIENT = "linear-gradient(135deg, #222F62 0%, #1A6DB6 50%, #6CB9B6 100%)"
+# Borders
+C_BORDER = "rgba(255,255,255,0.08)"
+C_BORDER_HOVER = "rgba(255,255,255,0.14)"
+
+# Text — HIGH CONTRAST
+C_TEXT = "#F1F5F9"
+C_TEXT2 = "#94A3B8"
+C_MUTED = "#64748B"
+C_DIM = "#475569"
+
+# Gradients
+ACCENT_GRADIENT = "linear-gradient(135deg, #1A6DB6 0%, #6CB9B6 100%)"
 ACCENT_TEXT_GRADIENT = "linear-gradient(135deg, #5B9BD5 0%, #6CB9B6 60%, #8DD8D0 100%)"
 
 
-def _glass_card_style(padding="24px", height=None, extra=""):
-    """Reusable glass card inline style."""
+def _card_style(padding="20px", height=None, extra=""):
+    """Reusable solid dark card inline style."""
     h = f"height:{height};" if height else ""
     return (
-        f"background:{C_CARD};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);"
-        f"border:1px solid {C_BORDER};border-radius:16px;padding:{padding};{h}"
-        f"transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;"
-        f"{extra}"
+        f"background:{C_CARD};border:1px solid {C_BORDER};border-radius:12px;"
+        f"padding:{padding};{h}transition:border-color 0.2s ease;"
+        f"position:relative;overflow:hidden;{extra}"
     )
+
+# Keep old name as alias for backward compat
+_glass_card_style = _card_style
 
 
 def _accent_label(text):
-    """Small gradient label text."""
+    """Small accent label text."""
     return (
-        f'<p style="background:{ACCENT_TEXT_GRADIENT};'
-        f'-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
-        f'font-size:0.6rem;text-transform:uppercase;letter-spacing:0.18em;'
-        f'margin-bottom:6px;font-weight:700;">{text}</p>'
+        f'<p style="color:{C_MUTED};font-size:0.6rem;text-transform:uppercase;'
+        f'letter-spacing:0.12em;margin-bottom:6px;font-weight:700;">{text}</p>'
     )
 
 
 def _section_label(text):
     """Sidebar section label."""
     return (
-        f'<p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.18em;'
-        f'color:{C_MUTED} !important;margin-bottom:8px;font-weight:600;">{text}</p>'
+        f'<p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.14em;'
+        f'color:{C_DIM} !important;margin-bottom:8px;font-weight:600;">{text}</p>'
     )
 
 
@@ -379,52 +385,67 @@ elif not _is_authed:
 # Full sidebar only when authenticated
 if _show_full_sidebar:
   with st.sidebar:
-    # Logo
+    # Logo + Brand
     if LOGO_B64:
         st.markdown(
-            f"""
-            <div style="text-align:center;padding:20px 0 6px 0;">
-                <img src="data:image/png;base64,{LOGO_B64}" width="160"
-                     style="filter:brightness(0) invert(1);opacity:0.85;" />
-            </div>
-            """,
+            f'<div style="text-align:center;padding:16px 0 4px 0;">'
+            f'<img src="data:image/png;base64,{LOGO_B64}" width="140"'
+            f' style="filter:brightness(0) invert(1);opacity:0.9;" />'
+            f'</div>',
             unsafe_allow_html=True
         )
-
     st.markdown(
-        f"""
-        <div style="text-align:center;padding:0 0 12px 0;">
-            <span style="background:{ACCENT_TEXT_GRADIENT};
-                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                         font-size:0.65rem;font-weight:700;
-                         letter-spacing:0.18em;text-transform:uppercase;">
-                Research Terminal
-            </span>
-        </div>
-        """,
+        f'<div style="text-align:center;padding:0 0 10px 0;">'
+        f'<span style="font-size:0.6rem;font-weight:600;color:{C_MUTED};'
+        f'letter-spacing:0.14em;text-transform:uppercase;">Research Terminal</span>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
     st.markdown("---")
 
-    # --- Navigation ---
-    st.markdown(_section_label("Navigation"), unsafe_allow_html=True)
-
-    for page_key, page_label, _ in NAV_PAGES:
-        # Hide admin page for non-admin users
-        if page_key == "admin" and AUTH_AVAILABLE:
-            if not is_admin():
-                continue
-        icon = NAV_ICONS.get(page_key, "")
+    # --- RESEARCH section ---
+    st.markdown(_section_label("Research"), unsafe_allow_html=True)
+    _nav_research = [("research", "Research", "\u2315"), ("comparison", "Compare", "\u21C4")]
+    for page_key, page_label, icon in _nav_research:
         is_active = st.session_state.current_page == page_key
         btn_type = "primary" if is_active else "secondary"
-        if st.button(
-            f"{icon}  {page_label}",
-            key=f"nav_{page_key}",
-            use_container_width=True,
-            type=btn_type,
-        ):
+        if st.button(f"{icon}  {page_label}", key=f"nav_{page_key}",
+                      use_container_width=True, type=btn_type):
             st.session_state.current_page = page_key
+            st.rerun()
+
+    # --- MARKETS section ---
+    st.markdown(_section_label("Markets"), unsafe_allow_html=True)
+    _nav_markets = [("dashboard", "Overview", "\u25A6"), ("sectors", "Sectors", "\u25A3")]
+    for page_key, page_label, icon in _nav_markets:
+        is_active = st.session_state.current_page == page_key
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(f"{icon}  {page_label}", key=f"nav_{page_key}",
+                      use_container_width=True, type=btn_type):
+            st.session_state.current_page = page_key
+            st.rerun()
+
+    # --- PORTFOLIO section ---
+    st.markdown(_section_label("Portfolio"), unsafe_allow_html=True)
+    _nav_portfolio = [("portfolio", "Positions", "\u25C8"), ("watchlist", "Watchlist", "\u25C9"),
+                      ("alerts", "Alerts", "\u26A0")]
+    for page_key, page_label, icon in _nav_portfolio:
+        is_active = st.session_state.current_page == page_key
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(f"{icon}  {page_label}", key=f"nav_{page_key}",
+                      use_container_width=True, type=btn_type):
+            st.session_state.current_page = page_key
+            st.rerun()
+
+    # --- ADMIN (if available) ---
+    if AUTH_AVAILABLE and is_admin():
+        st.markdown(_section_label("Admin"), unsafe_allow_html=True)
+        is_active = st.session_state.current_page == "admin"
+        btn_type = "primary" if is_active else "secondary"
+        if st.button("\u2699  Admin Panel", key="nav_admin",
+                      use_container_width=True, type=btn_type):
+            st.session_state.current_page = "admin"
             st.rerun()
 
     st.markdown("---")
@@ -498,7 +519,7 @@ if _show_full_sidebar:
                 read_opacity = "0.4" if alert.get("is_read") else "1.0"
                 st.markdown(
                     f'<div style="font-size:0.75rem;margin-bottom:4px;padding:6px 10px;'
-                    f'border-left:2px solid {sev_color};background:{C_GLASS};'
+                    f'border-left:2px solid {sev_color};background:{C_CARD};'
                     f'border-radius:0 8px 8px 0;opacity:{read_opacity};">'
                     f'{alert["message"]}'
                     f'<br/><span style="font-size:0.6rem;color:{C_MUTED};">'
@@ -1284,29 +1305,7 @@ def _display_comparison_view(old_report, new_report):
 
 def render_dashboard():
     """Dashboard home — market overview + AI chat."""
-    # Page header
-    if LOGO_B64:
-        st.markdown(
-            f"""
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
-                <img src="data:image/png;base64,{LOGO_B64}" height="44"
-                     style="filter:brightness(0) invert(1);opacity:0.85;" />
-                <div>
-                    <h1 style="margin:0;padding:0;font-size:1.6rem;font-weight:800;
-                        letter-spacing:-0.04em;">Research Terminal</h1>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown("# TAM Capital — Research Terminal")
-
-    st.markdown(
-        f'<p style="color:{C_TEXT2};font-size:0.9rem;margin-top:-4px;">'
-        f'Institutional-grade investment research. Powered by AI.</p>',
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Market Overview", "Institutional-grade investment research")
 
     st.markdown("")
 
@@ -1350,15 +1349,11 @@ def render_dashboard():
                 user_name = u.get("full_name", u.get("email", "Analyst")).split()[0]
         today_str = datetime.now().strftime("%A, %B %d, %Y")
         st.markdown(
-            f"""<div style="{_glass_card_style('20px')}margin-bottom:20px;
+            f"""<div style="{_card_style('20px')}margin-bottom:16px;
                 border-left:3px solid {C_ACCENT};">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                    <div style="width:10px;height:10px;border-radius:50%;background:{ACCENT_GRADIENT};
-                         box-shadow:0 0 10px {C_ACCENT};"></div>
-                    <span style="color:{C_TEXT};font-weight:700;font-size:1rem;">
-                        Good morning, {user_name}</span>
-                </div>
-                <p style="color:{C_TEXT2};font-size:0.85rem;margin-bottom:10px;">
+                <span style="color:{C_TEXT};font-weight:700;font-size:1rem;">
+                    Good morning, {user_name}</span>
+                <p style="color:{C_TEXT2};font-size:0.85rem;margin-top:4px;">
                     {today_str} &mdash; Here's your market brief</p>
             </div>""",
             unsafe_allow_html=True
@@ -1499,7 +1494,7 @@ def render_dashboard():
                 ver = f"v{r['version']}" if r.get("version") else ""
                 st.markdown(
                     f'<div style="font-size:0.78rem;margin-bottom:6px;padding:6px 10px;'
-                    f'background:{C_GLASS};border-radius:8px;border:1px solid {C_BORDER};">'
+                    f'background:{C_CARD};border-radius:8px;border:1px solid {C_BORDER};">'
                     f'<span style="color:{C_TEXT};font-weight:500;">{r["stock_name"]}</span> '
                     f'<span style="color:{C_ACCENT};font-size:0.7rem;font-weight:600;">{ver}</span>'
                     f'<br/><span style="color:{C_MUTED};font-size:0.65rem;">{r["date_display"]}</span>'
@@ -1531,20 +1526,113 @@ def render_dashboard():
 # PAGE: RESEARCH (Dedicated chat-first page)
 # ==========================================================
 
-def render_research():
-    """Full research chat interface."""
+def _render_branded_header(title, subtitle=None, badge=None):
+    """Render a branded header bar for any page."""
+    logo_html = ""
+    if LOGO_B64:
+        logo_html = (
+            f'<img src="data:image/png;base64,{LOGO_B64}" height="32"'
+            f' style="filter:brightness(0) invert(1);opacity:0.9;" />'
+        )
+    badge_html = ""
+    if badge:
+        badge_html = f'<span class="tam-badge">{badge}</span>'
+    sub_html = ""
+    if subtitle:
+        sub_html = f'<div class="tam-subtitle">{subtitle}</div>'
     st.markdown(
-        f"""<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;
-            padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <div style="width:10px;height:10px;border-radius:50%;background:{ACCENT_GRADIENT};
-                 box-shadow:0 0 10px {C_ACCENT};"></div>
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">AI Research Assistant</span>
-            <span style="color:{C_MUTED};font-size:0.8rem;margin-left:auto;">
-                Powered by Claude</span>
-        </div>""",
+        f'<div class="tam-header-bar">'
+        f'{logo_html}'
+        f'<div><div class="tam-title">{title}</div>{sub_html}</div>'
+        f'{badge_html}'
+        f'</div>',
         unsafe_allow_html=True
     )
+
+
+def _render_market_overview_empty_state():
+    """Show market overview cards when no chat history — Research page empty state."""
+    st.markdown(
+        f'<div style="text-align:center;padding:2rem 0 1rem 0;">'
+        f'<h2 style="color:{C_TEXT};font-weight:700;font-size:1.5rem;margin-bottom:4px;">'
+        f'What would you like to research?</h2>'
+        f'<p style="color:{C_TEXT2};font-size:0.9rem;">Ask about any Saudi-listed stock, sector, or market trend.</p>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    # Quick action chips
+    quick_actions = [
+        "Analyze SABIC", "TASI market outlook", "Banking sector review",
+        "Al Rajhi vs SNB", "Top dividend stocks", "Aramco earnings"
+    ]
+    chips_html = '<div style="text-align:center;margin-bottom:1.5rem;">'
+    for action in quick_actions:
+        chips_html += f'<span class="quick-chip">{action}</span>'
+    chips_html += '</div>'
+    st.markdown(chips_html, unsafe_allow_html=True)
+
+    # Market overview cards
+    st.markdown(_section_label("Market Snapshot"), unsafe_allow_html=True)
+    try:
+        tasi_data = fetch_stock_data("^TASI.SR") if "fetch_stock_data" in dir() else {}
+        tasi_price = tasi_data.get("price", tasi_data.get("regularMarketPrice", "—"))
+        tasi_change = tasi_data.get("regularMarketChangePercent", 0)
+    except Exception:
+        tasi_price = "—"
+        tasi_change = 0
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    with mc1:
+        delta_class = "positive" if tasi_change >= 0 else "negative"
+        delta_sign = "+" if tasi_change >= 0 else ""
+        st.markdown(
+            f'<div class="market-card">'
+            f'<div class="market-card-label">TASI Index</div>'
+            f'<div class="market-card-value">{tasi_price:,.0f if isinstance(tasi_price, (int, float)) else tasi_price}</div>'
+            f'<div class="market-card-delta {delta_class}">{delta_sign}{tasi_change:.2f}%</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    with mc2:
+        st.markdown(
+            f'<div class="market-card">'
+            f'<div class="market-card-label">Aramco</div>'
+            f'<div class="market-card-value">2222.SR</div>'
+            f'<div class="market-card-delta" style="color:{C_TEXT2};">Saudi Oil Giant</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    with mc3:
+        st.markdown(
+            f'<div class="market-card">'
+            f'<div class="market-card-label">Al Rajhi</div>'
+            f'<div class="market-card-value">1120.SR</div>'
+            f'<div class="market-card-delta" style="color:{C_TEXT2};">Banking Leader</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    with mc4:
+        st.markdown(
+            f'<div class="market-card">'
+            f'<div class="market-card-label">SABIC</div>'
+            f'<div class="market-card-value">2010.SR</div>'
+            f'<div class="market-card-delta" style="color:{C_TEXT2};">Petrochemicals</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('<div style="height:1rem;"></div>', unsafe_allow_html=True)
+
+
+def render_research():
+    """Full research chat interface."""
+    # Branded header
+    _render_branded_header("Research Terminal", "AI-powered investment research", "Live")
+
+    # If no chat history, show the market overview empty state
+    if not st.session_state.messages:
+        _render_market_overview_empty_state()
 
     # Chat history
     for msg_idx, msg in enumerate(st.session_state.messages):
@@ -1587,14 +1675,7 @@ def render_research():
 
 def render_portfolio():
     """Portfolio dashboard with live metrics."""
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">Portfolio Dashboard</span>
-        </div>""",
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Portfolio", "Live positions and P&L tracking")
 
     positions = get_positions()
 
@@ -1791,14 +1872,7 @@ def render_portfolio():
 
 def render_sectors():
     """Sector overview with drill-down."""
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">Saudi Market Sectors</span>
-        </div>""",
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Sectors", "Saudi market sector analysis")
 
     # Sector cards grid
     sector_items = list(SAUDI_SECTORS.items())
@@ -1848,14 +1922,7 @@ def render_sectors():
 
 def render_comparison():
     """Multi-stock comparison tool."""
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">Stock Comparison</span>
-        </div>""",
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Compare", "Multi-stock side-by-side analysis")
 
     st.markdown(
         f'<p style="color:{C_TEXT2};font-size:0.9rem;margin-bottom:16px;">'
@@ -1956,14 +2023,7 @@ def render_comparison():
 
 def render_watchlist():
     """Watchlist management page."""
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">Watchlist</span>
-        </div>""",
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Watchlist", "Track stocks and set alerts")
 
     wl_list = get_watchlists()
     if not wl_list:
@@ -2479,14 +2539,7 @@ def _handle_user_prompt(prompt: str):
 # ==========================================================
 def render_alerts():
     """Centralized alert management page."""
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-            margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid {C_BORDER};">
-            <span style="color:{C_TEXT};font-weight:700;font-size:1.2rem;
-                letter-spacing:-0.02em;">\u26A0 Alert Center</span>
-        </div>""",
-        unsafe_allow_html=True
-    )
+    _render_branded_header("Alerts", "Monitor and manage your alert rules")
 
     if ALERT_RULES_AVAILABLE:
         tab_names = ["Alert Rules", "Alert History"]
