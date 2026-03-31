@@ -22,7 +22,7 @@ import os
 
 
 def _get_logo_b64():
-    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "tam_logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "tams_logo.png")
     if os.path.exists(logo_path):
         with open(logo_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
@@ -552,7 +552,7 @@ footer{{
 <!-- Navigation -->
 <nav class="nav" id="navbar">
   <div class="nav-logo">
-    <img src="{logo_src}" alt="TAM Logo"/>
+    {'<img src="' + logo_src + '" alt="TAM Capital" style="height:36px;"/>' if logo_src else '<span style="font-size:1.4rem;font-weight:700;letter-spacing:1px;color:#fff;">TAM<span style="color:#6CB9B6;">Capital</span></span>'}
   </div>
   <div class="nav-links">
     <a href="#features" data-en="Features" data-ar="المميزات">Features</a>
@@ -765,7 +765,7 @@ footer{{
 <!-- Footer -->
 <footer>
   <p class="footer-text">
-    <span data-en="© 2025 TAM Capital. All rights reserved." data-ar="© 2025 رأس مال TAM. جميع الحقوق محفوظة.">© 2025 TAM Capital. All rights reserved.</span>
+    <span data-en="© 2026 TAM Capital. All rights reserved." data-ar="© 2026 رأس مال TAM. جميع الحقوق محفوظة.">© 2026 TAM Capital. All rights reserved.</span>
   </p>
   <div class="footer-links">
     <a href="#" data-en="Privacy Policy" data-ar="سياسة الخصوصية">Privacy Policy</a>
@@ -894,16 +894,21 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
 // ===== COUNTER ANIMATION =====
 document.querySelectorAll('[data-counter]').forEach(el=>{{
-  const target=parseInt(el.getAttribute('data-counter'));
-  const start=0;
+  const finalText=el.textContent;
+  const target=parseFloat(el.getAttribute('data-counter'));
+  const isFloat=String(target).includes('.');
   const duration=2000;
   const startTime=Date.now();
   function count(){{
     const elapsed=Date.now()-startTime;
     const progress=Math.min(elapsed/duration,1);
-    const current=Math.floor(start+(target-start)*progress);
-    el.textContent=current+el.textContent.replace(/[0-9]/g,'');
-    if(progress<1)requestAnimationFrame(count);
+    const eased=1-Math.pow(1-progress,3);
+    if(progress>=1){{el.textContent=finalText;return;}}
+    const current=isFloat?Math.round((target*eased)*10)/10:Math.floor(target*eased);
+    if(target>=1000){{el.textContent=current.toLocaleString()+finalText.replace(/[\\d,.]+/,'');}}
+    else if(isFloat){{el.textContent=current.toFixed(1)+finalText.replace(/[\\d.]+/,'');}}
+    else{{el.textContent=current+finalText.replace(/\\d+/,'');}}
+    requestAnimationFrame(count);
   }}
   const revealObs=new IntersectionObserver(entries=>{{
     if(entries[0].isIntersecting){{count();revealObs.disconnect();}}
