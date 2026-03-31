@@ -1,10 +1,42 @@
-"""TAM Research — Admin Panel."""
+"""TAM Research — Admin Panel (Real Data)."""
 import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
+
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
 from auth.rbac import require_role, is_super_admin
-import plotly.graph_objects as go
-import plotly.express as px
+from auth.login import get_all_users, update_user_role, toggle_user_status
+
+# Token tracker
+try:
+    from data.token_tracker import (
+        get_token_summary, get_all_token_usage, get_top_consumers
+    )
+    TOKEN_TRACKER = True
+except ImportError:
+    TOKEN_TRACKER = False
+
+# Activity tracker
+try:
+    from data.activity_tracker import (
+        get_activity_summary, get_ticker_frequency, get_feature_adoption
+    )
+    ACTIVITY_TRACKER = True
+except ImportError:
+    ACTIVITY_TRACKER = False
+
+# Audit logger
+try:
+    from data.audit_logger import get_audit_log, get_audit_summary
+    AUDIT_AVAILABLE = True
+except ImportError:
+    AUDIT_AVAILABLE = False
 
 # TAM brand colors
 C_BG = "#070B14"
@@ -15,23 +47,18 @@ C_DEEP = "#222F62"
 C_TURQUOISE = "#6CB9B6"
 C_GREEN = "#22C55E"
 C_RED = "#EF4444"
+C_ORANGE = "#F59E0B"
 C_CARD = "rgba(26,38,78,0.15)"
 C_GLASS = "rgba(34,47,98,0.12)"
 C_BORDER = "rgba(108,185,182,0.08)"
 
 
 def render_admin():
-    """Render the admin panel."""
+    """Render the admin panel with real data."""
     require_role("super_admin", "admin")
-
-    st.set_page_config(page_title="Admin — TAM Research", layout="wide")
 
     # TAM Liquid Glass CSS
     st.markdown(f"""<style>
-    [data-testid="stAppViewContainer"] {{
-        background: linear-gradient(135deg, {C_BG} 0%, #0f1829 100%);
-    }}
-
     .glass-card {{
         background: {C_GLASS};
         backdrop-filter: blur(24px);
@@ -39,571 +66,583 @@ def render_admin():
         border: 1px solid {C_BORDER};
         border-radius: 16px;
         padding: 24px;
+        margin-bottom: 16px;
     }}
-
-    .metric-card {{
+    .metric-big {{
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: {C_TEXT};
+        margin: 0;
+    }}
+    .metric-label {{
+        font-size: 0.8rem;
+        color: {C_TEXT2};
+        margin: 0;
+    }}
+    .metric-delta {{
+        font-size: 0.85rem;
+        font-weight: 600;
+    }}
+    .delta-up {{ color: {C_GREEN}; }}
+    .delta-down {{ color: {C_RED}; }}
+    .user-row {{
         background: {C_GLASS};
         border: 1px solid {C_BORDER};
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
     }}
-
-    .table-container {{
-        background: {C_GLASS};
-        border: 1px solid {C_BORDER};
+    .badge {{
+        display: inline-block;
+        padding: 2px 10px;
         border-radius: 12px;
-        padding: 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
     }}
+    .badge-admin {{ background: rgba(26,109,182,0.2); color: {C_ACCENT}; }}
+    .badge-analyst {{ background: rgba(108,185,182,0.2); color: {C_TURQUOISE}; }}
+    .badge-viewer {{ background: rgba(139,148,158,0.2); color: {C_TEXT2}; }}
+    .badge-super {{ background: rgba(34,197,94,0.2); color: {C_GREEN}; }}
+    .badge-active {{ background: rgba(34,197,94,0.15); color: {C_GREEN}; }}
+    .badge-inactive {{ background: rgba(239,68,68,0.15); color: {C_RED}; }}
     </style>""", unsafe_allow_html=True)
 
     # Header
-    st.markdown(f"""<div style="
-        background: {C_GLASS};
-        border-bottom: 1px solid {C_BORDER};
-        padding: 20px;
-        border-radius: 0;
-        margin: -40px -40px 20px -40px;
-    ">
-        <h1 style="color:{C_TEXT};margin:0;font-size:2rem;">Admin Panel</h1>
-        <p style="color:{C_TEXT2};margin:4px 0 0 0;">System administration and user management</p>
+    st.markdown(f"""<div style="margin-bottom:24px;">
+        <h1 style="color:{C_TEXT};margin:0;font-size:1.8rem;font-weight:700;">Admin Dashboard</h1>
+        <p style="color:{C_TEXT2};margin:4px 0 0 0;">User management, token usage, and platform analytics</p>
     </div>""", unsafe_allow_html=True)
 
     # Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Users", "Usage Stats", "System Config", "Audit Log"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "Overview", "Users", "Token Usage", "Audit Log"
+    ])
 
     with tab1:
-        _render_users_tab()
+        _render_overview_tab()
 
     with tab2:
-        _render_usage_stats_tab()
+        _render_users_tab()
 
     with tab3:
-        _render_system_config_tab()
+        _render_token_usage_tab()
 
     with tab4:
         _render_audit_log_tab()
 
 
-def _render_users_tab():
-    """Render Users management tab."""
-    st.subheader("User Management")
+# =====================================================================
+#  TAB 1 — OVERVIEW
+# =====================================================================
+def _render_overview_tab():
+    """Executive overview with KPIs."""
 
-    col1, col2 = st.columns([3, 1])
+    # Load real data
+    users = get_all_users()
+    active_users = [u for u in users if u.get("status") == "active"]
+    new_this_week = [u for u in users if _is_recent(u.get("created_at"), days=7)]
 
-    with col2:
-        if st.button("+ Invite User", use_container_width=True, type="primary"):
-            st.session_state.show_invite_form = True
+    token_data = get_token_summary(30) if TOKEN_TRACKER else {}
+    token_data_7 = get_token_summary(7) if TOKEN_TRACKER else {}
 
-    # Invite form
-    if st.session_state.get("show_invite_form"):
-        st.markdown(f"""<div class="glass-card">""", unsafe_allow_html=True)
-        st.markdown("**Invite New User**")
-
-        invite_email = st.text_input("Email address", placeholder="analyst@tamcapital.sa", key="invite_email")
-        invite_role = st.selectbox("Role",
-            options=["analyst", "admin", "viewer"],
-            index=0,
-            key="invite_role"
-        )
-
-        col_invite, col_cancel = st.columns(2)
-        with col_invite:
-            if st.button("Send Invite", use_container_width=True):
-                if invite_email:
-                    _send_user_invite(invite_email, invite_role)
-                    st.success(f"Invitation sent to {invite_email}")
-                    st.session_state.show_invite_form = False
-                    st.rerun()
-                else:
-                    st.warning("Enter an email address")
-        with col_cancel:
-            if st.button("Cancel", use_container_width=True):
-                st.session_state.show_invite_form = False
-                st.rerun()
-
-        st.markdown("""</div>""", unsafe_allow_html=True)
-
-    # Users table
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("**All Users**")
-
-    # Mock user data (replace with DB query in production)
-    users_data = _get_mock_users()
-
-    # Create dataframe
-    df_users = pd.DataFrame(users_data)
-
-    # Render table with editable roles
-    st.markdown(f"""<div class="table-container">""", unsafe_allow_html=True)
-
-    for idx, user in enumerate(users_data):
-        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1.5, 1.5, 1, 1])
-
-        with col1:
-            st.text(user["email"])
-        with col2:
-            st.text(user["full_name"])
-        with col3:
-            role = st.selectbox("Role",
-                options=["viewer", "analyst", "admin", "super_admin"],
-                index=["viewer", "analyst", "admin", "super_admin"].index(user["role"]),
-                key=f"role_{idx}",
-                label_visibility="collapsed"
-            )
-            if role != user["role"]:
-                _update_user_role(user["id"], role)
-        with col4:
-            st.text(user["last_login"])
-        with col5:
-            status_color = C_GREEN if user["status"] == "Active" else C_RED
-            st.markdown(f"""<span style="color:{status_color}">●</span> {user["status"]}""",
-                       unsafe_allow_html=True)
-        with col6:
-            active = user["status"] == "Active"
-            if st.button("Deactivate" if active else "Activate",
-                        key=f"toggle_{idx}",
-                        use_container_width=True):
-                _toggle_user_status(user["id"], not active)
-                st.rerun()
-
-    st.markdown("""</div>""", unsafe_allow_html=True)
-
-
-def _render_usage_stats_tab():
-    """Render Usage Statistics tab."""
-    st.subheader("Usage Analytics")
-
-    # Metrics row
+    # KPI cards row
     col1, col2, col3, col4 = st.columns(4)
 
-    stats = _get_mock_usage_stats()
-
     with col1:
-        st.metric("Total Reports Generated", stats["total_reports"], "+12 this week")
+        st.markdown(f"""<div class="glass-card" style="text-align:center;">
+            <p class="metric-label">Total Users</p>
+            <p class="metric-big">{len(users)}</p>
+            <p class="metric-delta delta-up">+{len(new_this_week)} this week</p>
+        </div>""", unsafe_allow_html=True)
+
     with col2:
-        st.metric("Weekly Active Users", stats["weekly_active"], "-2 from last week")
+        st.markdown(f"""<div class="glass-card" style="text-align:center;">
+            <p class="metric-label">Active Users</p>
+            <p class="metric-big">{len(active_users)}</p>
+            <p class="metric-delta" style="color:{C_TURQUOISE};">{_pct(len(active_users), len(users))}% of total</p>
+        </div>""", unsafe_allow_html=True)
+
     with col3:
-        st.metric("Reports This Month", stats["monthly_reports"], "+8%")
+        total_tokens = token_data.get("total_tokens", 0)
+        st.markdown(f"""<div class="glass-card" style="text-align:center;">
+            <p class="metric-label">Tokens Used (30d)</p>
+            <p class="metric-big">{_fmt_tokens(total_tokens)}</p>
+            <p class="metric-delta" style="color:{C_ORANGE};">${token_data.get('total_cost_usd', 0):.2f} est. cost</p>
+        </div>""", unsafe_allow_html=True)
+
     with col4:
-        st.metric("Avg Export/Day", stats["avg_export"], "+15%")
+        total_requests = token_data.get("total_requests", 0)
+        st.markdown(f"""<div class="glass-card" style="text-align:center;">
+            <p class="metric-label">API Requests (30d)</p>
+            <p class="metric-big">{total_requests:,}</p>
+            <p class="metric-delta" style="color:{C_TURQUOISE};">{token_data_7.get('total_requests', 0)} last 7d</p>
+        </div>""", unsafe_allow_html=True)
 
-    # Charts
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-
-    # Top 10 tickers chart
-    with col1:
-        st.markdown("**Top 10 Researched Tickers**")
-        ticker_data = _get_mock_ticker_data()
-
-        fig = go.Figure(data=[
-            go.Bar(
-                y=ticker_data["ticker"],
-                x=ticker_data["count"],
-                orientation='h',
-                marker=dict(color=C_TURQUOISE),
-                text=ticker_data["count"],
-                textposition='outside',
-            )
-        ])
-
-        fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color=C_TEXT, size=12),
-            margin=dict(l=0, r=0, t=0, b=0),
-            height=400,
-            xaxis=dict(showgrid=False, zeroline=False, showline=False),
-            yaxis=dict(showgrid=False, zeroline=False, showline=False),
-        )
-
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-    # Daily active users chart
-    with col2:
-        st.markdown("**Daily Active Users (Last 30 Days)**")
-        dau_data = _get_mock_dau_data()
-
-        fig = go.Figure(data=[
-            go.Scatter(
-                x=dau_data["date"],
-                y=dau_data["users"],
-                mode='lines',
-                line=dict(color=C_ACCENT, width=3),
-                fill='tozeroy',
-                fillcolor='rgba(26,109,182,0.1)',
-            )
-        ])
-
-        fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color=C_TEXT, size=12),
-            margin=dict(l=0, r=0, t=0, b=0),
-            height=400,
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False),
-        )
-
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-    # Feature adoption
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("**Feature Adoption**")
-
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    adoption = _get_mock_feature_adoption()
-
-    with col1:
-        st.metric("DCF Runs", adoption["dcf_runs"])
-    with col2:
-        st.metric("Reports Generated", adoption["reports"])
-    with col3:
-        st.metric("Exports Created", adoption["exports"])
-    with col4:
-        st.metric("Alerts Set", adoption["alerts"])
-    with col5:
-        st.metric("Notes Created", adoption["notes"])
-
-
-def _render_system_config_tab():
-    """Render System Configuration tab."""
-    st.subheader("System Configuration")
-
-    st.markdown(f"""<div class="glass-card">""", unsafe_allow_html=True)
-
-    # API Keys
-    st.markdown("**API Keys & Services**")
-
-    # Mock API key status
-    api_keys = {
-        "Anthropic (Claude)": ("sk-ant-...7w", True),
-        "Perplexity": ("ppl-...abc", True),
-        "OpenAI": ("sk-...xyz", False),
-        "Google": ("AIza...def", True),
-    }
-
-    for service, (key_mask, is_set) in api_keys.items():
-        col1, col2, col3 = st.columns([2, 2, 1])
-
-        status_color = C_GREEN if is_set else C_RED
-        status_text = "Active" if is_set else "Not Set"
+    # Charts row
+    if PLOTLY_AVAILABLE and TOKEN_TRACKER:
+        col1, col2 = st.columns(2)
 
         with col1:
-            st.text(service)
-        with col2:
-            if is_set:
-                st.text(key_mask)
+            st.markdown(f"**Daily Token Usage (30 days)**")
+            daily = token_data.get("daily_trend", [])
+            if daily:
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=[d["date"] for d in daily],
+                        y=[d["tokens"] for d in daily],
+                        marker=dict(color=C_TURQUOISE, opacity=0.8),
+                        hovertemplate="<b>%{x}</b><br>Tokens: %{y:,.0f}<extra></extra>"
+                    )
+                ])
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color=C_TEXT, size=11),
+                    margin=dict(l=0, r=0, t=10, b=30),
+                    height=300,
+                    xaxis=dict(showgrid=False),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             else:
-                st.text("—")
+                st.info("No token usage data yet. Data will appear after users run research queries.")
+
+        with col2:
+            st.markdown(f"**Top Token Consumers**")
+            top = get_top_consumers(top_n=8, days=30) if TOKEN_TRACKER else []
+            if top:
+                # Map user IDs to names
+                user_map = {u.get("id", ""): u.get("full_name", u.get("email", "Unknown")) for u in users}
+                labels = [user_map.get(t["user_id"], t["user_id"][:12]) for t in top]
+                values = [t["tokens"] for t in top]
+
+                fig = go.Figure(data=[
+                    go.Bar(
+                        y=labels[::-1],
+                        x=values[::-1],
+                        orientation='h',
+                        marker=dict(color=C_ACCENT),
+                        text=[_fmt_tokens(v) for v in values[::-1]],
+                        textposition='outside',
+                        hovertemplate="<b>%{y}</b><br>Tokens: %{x:,.0f}<extra></extra>"
+                    )
+                ])
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color=C_TEXT, size=11),
+                    margin=dict(l=0, r=60, t=10, b=10),
+                    height=300,
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False),
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("No token usage data yet.")
+
+    # Recent signups
+    st.markdown(f"**Recent Sign-ups**")
+    recent_users = sorted(users, key=lambda u: u.get("created_at", ""), reverse=True)[:10]
+    if recent_users:
+        for u in recent_users:
+            role = u.get("role", "viewer")
+            badge_class = f"badge-{role}" if role != "super_admin" else "badge-super"
+            created = _format_time(u.get("created_at"))
+            company = u.get("company", "")
+            company_str = f" — {company}" if company else ""
+            st.markdown(f"""<div class="user-row" style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <span style="color:{C_TEXT};font-weight:600;">{u.get('full_name', 'Unknown')}</span>
+                    <span style="color:{C_TEXT2};font-size:0.85rem;margin-left:8px;">{u.get('email', '')}{company_str}</span>
+                </div>
+                <div>
+                    <span class="badge {badge_class}">{role}</span>
+                    <span style="color:{C_TEXT2};font-size:0.8rem;margin-left:12px;">{created}</span>
+                </div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        st.info("No users yet. Share the app link with your team to get started!")
+
+
+# =====================================================================
+#  TAB 2 — USERS
+# =====================================================================
+def _render_users_tab():
+    """User management tab with real data."""
+    st.subheader("User Management")
+
+    users = get_all_users()
+
+    # Filter bar
+    col_search, col_role, col_status = st.columns([2, 1, 1])
+    with col_search:
+        search = st.text_input("Search users", placeholder="Name or email...", key="user_search",
+                               label_visibility="collapsed")
+    with col_role:
+        role_filter = st.selectbox("Role", ["All", "super_admin", "admin", "analyst", "viewer"],
+                                   key="user_role_filter")
+    with col_status:
+        status_filter = st.selectbox("Status", ["All", "active", "inactive"], key="user_status_filter")
+
+    # Apply filters
+    filtered = users
+    if search:
+        search_lower = search.lower()
+        filtered = [u for u in filtered
+                    if search_lower in u.get("full_name", "").lower()
+                    or search_lower in u.get("email", "").lower()]
+    if role_filter != "All":
+        filtered = [u for u in filtered if u.get("role") == role_filter]
+    if status_filter != "All":
+        filtered = [u for u in filtered if u.get("status") == status_filter]
+
+    # Summary
+    st.markdown(f"<p style='color:{C_TEXT2};font-size:0.85rem;'>Showing {len(filtered)} of {len(users)} users</p>",
+                unsafe_allow_html=True)
+
+    # User table
+    for idx, user in enumerate(filtered):
+        role = user.get("role", "viewer")
+        status = user.get("status", "active")
+        badge_role = f"badge-{role}" if role != "super_admin" else "badge-super"
+        badge_status = "badge-active" if status == "active" else "badge-inactive"
+        tokens = user.get("token_usage", 0)
+        last_login = _format_time(user.get("last_login"))
+        created = _format_time(user.get("created_at"))
+        company = user.get("company", "")
+
+        col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1.5, 1.2, 1.2, 1, 1])
+
+        with col1:
+            st.markdown(f"""<div>
+                <span style="color:{C_TEXT};font-weight:600;">{user.get('full_name', 'Unknown')}</span><br>
+                <span style="color:{C_TEXT2};font-size:0.8rem;">{user.get('email', '')}</span>
+                {"<br><span style='color:" + C_TEXT2 + ";font-size:0.75rem;'>" + company + "</span>" if company else ""}
+            </div>""", unsafe_allow_html=True)
+
+        with col2:
+            new_role = st.selectbox(
+                "Role",
+                options=["viewer", "analyst", "admin", "super_admin"],
+                index=["viewer", "analyst", "admin", "super_admin"].index(role),
+                key=f"role_{user.get('id', idx)}",
+                label_visibility="collapsed"
+            )
+            if new_role != role:
+                update_user_role(user.get("id"), new_role)
+                st.rerun()
+
         with col3:
-            st.markdown(f"""<span style="color:{status_color}">●</span> {status_text}""",
-                       unsafe_allow_html=True)
+            st.markdown(f"""<div style="text-align:center;">
+                <span style="color:{C_TURQUOISE};font-weight:600;">{_fmt_tokens(tokens)}</span><br>
+                <span style="color:{C_TEXT2};font-size:0.7rem;">tokens</span>
+            </div>""", unsafe_allow_html=True)
 
-    st.markdown("""</div>""", unsafe_allow_html=True)
+        with col4:
+            st.markdown(f"""<div style="text-align:center;">
+                <span style="color:{C_TEXT};font-size:0.85rem;">{last_login}</span><br>
+                <span style="color:{C_TEXT2};font-size:0.7rem;">last login</span>
+            </div>""", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        with col5:
+            st.markdown(f'<span class="badge {badge_status}">{status}</span>', unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="glass-card">""", unsafe_allow_html=True)
+        with col6:
+            is_active = status == "active"
+            btn_label = "Deactivate" if is_active else "Activate"
+            if st.button(btn_label, key=f"toggle_{user.get('id', idx)}", use_container_width=True):
+                toggle_user_status(user.get("id"), not is_active)
+                st.rerun()
 
-    # Model Configuration
-    st.markdown("**Model Configuration**")
+        st.divider()
 
-    col1, col2 = st.columns([1, 1])
+
+# =====================================================================
+#  TAB 3 — TOKEN USAGE
+# =====================================================================
+def _render_token_usage_tab():
+    """Detailed token usage analytics."""
+    st.subheader("Token Usage Analytics")
+
+    if not TOKEN_TRACKER:
+        st.warning("Token tracker module not available.")
+        return
+
+    # Time range selector
+    days = st.selectbox("Time Range", [7, 14, 30, 60, 90], index=2,
+                        format_func=lambda d: f"Last {d} days", key="token_days")
+
+    summary = get_token_summary(days)
+    users = get_all_users()
+    user_map = {u.get("id", ""): u.get("full_name", u.get("email", "Unknown")) for u in users}
+
+    # KPI row
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        default_model = st.selectbox(
-            "Default Research Model",
-            options=["claude-opus-4", "claude-sonnet-4", "gpt-4o", "gpt-4-turbo"],
-            index=0,
-            key="default_model"
-        )
-
+        st.metric("Total Tokens", _fmt_tokens(summary.get("total_tokens", 0)))
     with col2:
-        fallback_model = st.selectbox(
-            "Fallback Model",
-            options=["claude-opus-4", "claude-sonnet-4", "gpt-4o-mini", "gpt-4-turbo"],
-            index=2,
-            key="fallback_model"
-        )
+        st.metric("Input Tokens", _fmt_tokens(summary.get("total_input", 0)))
+    with col3:
+        st.metric("Output Tokens", _fmt_tokens(summary.get("total_output", 0)))
+    with col4:
+        st.metric("Est. Cost (USD)", f"${summary.get('total_cost_usd', 0):.2f}")
+    with col5:
+        st.metric("API Requests", f"{summary.get('total_requests', 0):,}")
 
-    if st.button("Save Model Configuration", use_container_width=True):
-        st.success("Model configuration updated")
+    if PLOTLY_AVAILABLE:
+        col1, col2 = st.columns(2)
 
-    st.markdown("""</div>""", unsafe_allow_html=True)
+        # Daily trend chart
+        with col1:
+            st.markdown("**Daily Token Consumption**")
+            daily = summary.get("daily_trend", [])
+            if daily:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=[d["date"] for d in daily],
+                    y=[d["tokens"] for d in daily],
+                    mode='lines+markers',
+                    line=dict(color=C_TURQUOISE, width=2),
+                    marker=dict(size=6),
+                    fill='tozeroy',
+                    fillcolor='rgba(108,185,182,0.1)',
+                    hovertemplate="<b>%{x}</b><br>Tokens: %{y:,.0f}<extra></extra>"
+                ))
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color=C_TEXT, size=11),
+                    margin=dict(l=0, r=0, t=10, b=30),
+                    height=300,
+                    xaxis=dict(showgrid=False),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("No data for this period.")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        # By model breakdown
+        with col2:
+            st.markdown("**Usage by Model**")
+            by_model = summary.get("by_model", {})
+            if by_model:
+                models = list(by_model.keys())
+                tokens = [by_model[m]["tokens"] for m in models]
+                colors = [C_TURQUOISE, C_ACCENT, C_GREEN, C_ORANGE, C_RED]
 
-    st.markdown(f"""<div class="glass-card">""", unsafe_allow_html=True)
+                fig = go.Figure(data=[go.Pie(
+                    labels=models,
+                    values=tokens,
+                    hole=0.55,
+                    marker=dict(colors=colors[:len(models)]),
+                    textinfo='label+percent',
+                    textfont=dict(size=11, color=C_TEXT),
+                    hovertemplate="<b>%{label}</b><br>Tokens: %{value:,.0f}<br>%{percent}<extra></extra>"
+                )])
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color=C_TEXT, size=11),
+                    margin=dict(l=0, r=0, t=10, b=10),
+                    height=300,
+                    showlegend=False,
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("No data for this period.")
 
-    # Alert Thresholds
-    st.markdown("**Alert Thresholds**")
+        # By action breakdown
+        st.markdown("**Usage by Action Type**")
+        by_action = summary.get("by_action", {})
+        if by_action:
+            actions = list(by_action.keys())
+            tokens = [by_action[a]["tokens"] for a in actions]
+            requests = [by_action[a]["requests"] for a in actions]
+            costs = [round(by_action[a]["cost"], 4) for a in actions]
 
-    col1, col2 = st.columns(2)
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=actions,
+                    y=tokens,
+                    marker=dict(color=C_ACCENT, opacity=0.85),
+                    text=[_fmt_tokens(t) for t in tokens],
+                    textposition='outside',
+                    hovertemplate="<b>%{x}</b><br>Tokens: %{y:,.0f}<extra></extra>"
+                )
+            ])
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color=C_TEXT, size=11),
+                margin=dict(l=0, r=0, t=10, b=30),
+                height=280,
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-    with col1:
-        price_threshold = st.number_input(
-            "Price Change Alert Threshold (%)",
-            min_value=0.5,
-            max_value=50.0,
-            value=5.0,
-            step=0.5,
-            key="price_threshold"
-        )
-
-    with col2:
-        volume_multiplier = st.number_input(
-            "Volume Multiplier Alert Threshold",
-            min_value=1.0,
-            max_value=10.0,
-            value=2.5,
-            step=0.5,
-            key="volume_threshold"
-        )
-
-    if st.button("Save Alert Thresholds", use_container_width=True):
-        st.success("Alert thresholds updated")
-
-    st.markdown("""</div>""", unsafe_allow_html=True)
+    # Per-user breakdown table
+    st.markdown("**Per-User Token Breakdown**")
+    by_user = summary.get("by_user", {})
+    if by_user:
+        rows = []
+        for uid, data in by_user.items():
+            name = user_map.get(uid, uid[:16])
+            rows.append({
+                "User": name,
+                "Tokens": f"{data['tokens']:,}",
+                "Requests": data["requests"],
+                "Est. Cost": f"${data['cost']:.4f}",
+                "Avg/Request": f"{data['tokens'] // max(data['requests'], 1):,}",
+            })
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No token usage recorded yet.")
 
 
+# =====================================================================
+#  TAB 4 — AUDIT LOG
+# =====================================================================
 def _render_audit_log_tab():
-    """Render Audit Log tab."""
+    """Render audit log with real data from audit_logger."""
     st.subheader("Audit Log")
 
-    col1, col2, col3, col4 = st.columns([1.5, 1, 1.5, 1.5])
+    if not AUDIT_AVAILABLE:
+        st.warning("Audit logger module not available.")
+        return
+
+    # Filters
+    col1, col2, col3 = st.columns([1.5, 1, 1])
 
     with col1:
-        date_range = st.date_input(
-            "Date Range",
-            value=(datetime.now() - timedelta(days=7), datetime.now()),
-            key="audit_date_range"
-        )
+        days = st.slider("Days back", 1, 90, 7, key="audit_days")
 
     with col2:
         action_filter = st.selectbox(
             "Action Type",
-            options=["All", "Create", "Update", "Delete", "Export", "Login"],
+            options=["All", "search", "analyze", "export", "login", "dcf_run", "view_report"],
             key="audit_action"
         )
 
     with col3:
-        user_filter = st.selectbox(
-            "User",
-            options=["All", "mmalki@tamcapital.sa", "analyst1@tamcapital.sa", "analyst2@tamcapital.sa"],
-            key="audit_user"
-        )
-
-    with col4:
         if st.button("Export CSV", use_container_width=True):
-            _export_audit_log()
+            logs = get_audit_log(days=days, limit=5000)
+            if logs:
+                df = pd.DataFrame(logs)
+                csv = df.to_csv(index=False)
+                st.download_button("Download", csv,
+                                   f"audit_log_{datetime.now().strftime('%Y%m%d')}.csv",
+                                   "text/csv")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Get logs
+    logs = get_audit_log(days=days, limit=200)
 
-    # Audit log table
-    audit_logs = _get_mock_audit_logs()
-
-    # Filter by date range
-    if isinstance(date_range, tuple) and len(date_range) == 2:
-        start_date, end_date = date_range
-        audit_logs = [log for log in audit_logs
-                     if start_date <= datetime.fromisoformat(log["timestamp"]).date() <= end_date]
-
-    # Filter by action
     if action_filter != "All":
-        audit_logs = [log for log in audit_logs if log["action"] == action_filter]
+        logs = [l for l in logs if l.get("action") == action_filter]
 
-    # Filter by user
-    if user_filter != "All":
-        audit_logs = [log for log in audit_logs if log["user"] == user_filter]
+    if not logs:
+        st.info("No audit log entries for this period.")
+        return
 
-    # Display table
-    df_audit = pd.DataFrame(audit_logs)
+    st.markdown(f"<p style='color:{C_TEXT2};font-size:0.85rem;'>Showing {len(logs)} entries</p>",
+                unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="table-container">""", unsafe_allow_html=True)
+    users = get_all_users()
+    user_map = {u.get("id", ""): u.get("full_name", u.get("email", "Unknown")) for u in users}
 
-    # Header
-    col1, col2, col3, col4, col5 = st.columns([2, 1.5, 1.2, 2.5, 1.8])
+    # Table header
+    col1, col2, col3, col4, col5 = st.columns([2, 1.5, 1.2, 2, 2])
     with col1:
-        st.markdown(f"<b style='color:{C_TURQUOISE}'>Timestamp</b>", unsafe_allow_html=True)
+        st.markdown(f"<b style='color:{C_TURQUOISE};font-size:0.85rem;'>Timestamp</b>", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<b style='color:{C_TURQUOISE}'>User</b>", unsafe_allow_html=True)
+        st.markdown(f"<b style='color:{C_TURQUOISE};font-size:0.85rem;'>User</b>", unsafe_allow_html=True)
     with col3:
-        st.markdown(f"<b style='color:{C_TURQUOISE}'>Action</b>", unsafe_allow_html=True)
+        st.markdown(f"<b style='color:{C_TURQUOISE};font-size:0.85rem;'>Action</b>", unsafe_allow_html=True)
     with col4:
-        st.markdown(f"<b style='color:{C_TURQUOISE}'>Resource</b>", unsafe_allow_html=True)
+        st.markdown(f"<b style='color:{C_TURQUOISE};font-size:0.85rem;'>Resource</b>", unsafe_allow_html=True)
     with col5:
-        st.markdown(f"<b style='color:{C_TURQUOISE}'>Details</b>", unsafe_allow_html=True)
+        st.markdown(f"<b style='color:{C_TURQUOISE};font-size:0.85rem;'>Details</b>", unsafe_allow_html=True)
 
     st.divider()
 
-    # Rows
-    for log in audit_logs[-50:]:  # Show last 50 entries
-        col1, col2, col3, col4, col5 = st.columns([2, 1.5, 1.2, 2.5, 1.8])
+    for log in logs[:100]:
+        col1, col2, col3, col4, col5 = st.columns([2, 1.5, 1.2, 2, 2])
 
         with col1:
-            st.text(log["timestamp"])
+            ts = log.get("timestamp", "")[:19]
+            st.text(ts)
         with col2:
-            st.text(log["user"].split("@")[0])
+            uid = log.get("user_id", "")
+            name = user_map.get(uid, log.get("user_email", uid[:12]))
+            st.text(name)
         with col3:
-            action_color = {
-                "Create": C_GREEN,
-                "Update": C_ACCENT,
-                "Delete": C_RED,
-                "Export": C_TURQUOISE,
-                "Login": C_TEXT2,
-            }.get(log["action"], C_TEXT)
-            st.markdown(f"""<span style="color:{action_color}">{log["action"]}</span>""",
-                       unsafe_allow_html=True)
+            action = log.get("action", "")
+            color = {
+                "search": C_ACCENT,
+                "analyze": C_TURQUOISE,
+                "export": C_GREEN,
+                "login": C_TEXT2,
+                "dcf_run": C_ORANGE,
+            }.get(action, C_TEXT)
+            st.markdown(f'<span style="color:{color}">{action}</span>', unsafe_allow_html=True)
         with col4:
-            st.text(log["resource"])
+            st.text(log.get("resource", log.get("ticker", "")))
         with col5:
-            st.caption(log["details"])
-
-    st.markdown("""</div>""", unsafe_allow_html=True)
-
-
-# Mock data functions
-def _get_mock_users():
-    """Return mock user data."""
-    return [
-        {
-            "id": "user_1",
-            "email": "mmalki@tamcapital.sa",
-            "full_name": "Mohammed Malki",
-            "role": "super_admin",
-            "last_login": "Today, 9:42 AM",
-            "status": "Active"
-        },
-        {
-            "id": "user_2",
-            "email": "analyst1@tamcapital.sa",
-            "full_name": "Ahmed Al-Rashid",
-            "role": "analyst",
-            "last_login": "Today, 8:15 AM",
-            "status": "Active"
-        },
-        {
-            "id": "user_3",
-            "email": "analyst2@tamcapital.sa",
-            "full_name": "Fatima Al-Suwaidi",
-            "role": "analyst",
-            "last_login": "Yesterday, 3:30 PM",
-            "status": "Active"
-        },
-        {
-            "id": "user_4",
-            "email": "viewer@tamcapital.sa",
-            "full_name": "Omar Al-Kaabi",
-            "role": "viewer",
-            "last_login": "2 days ago",
-            "status": "Active"
-        },
-        {
-            "id": "user_5",
-            "email": "inactive@tamcapital.sa",
-            "full_name": "Removed User",
-            "role": "analyst",
-            "last_login": "30 days ago",
-            "status": "Inactive"
-        },
-    ]
+            details = log.get("details", log.get("metadata", ""))
+            if isinstance(details, dict):
+                details = str(details)[:80]
+            st.caption(str(details)[:80])
 
 
-def _get_mock_usage_stats():
-    """Return mock usage statistics."""
-    return {
-        "total_reports": 487,
-        "weekly_active": 18,
-        "monthly_reports": 156,
-        "avg_export": 12
-    }
+# =====================================================================
+#  HELPERS
+# =====================================================================
+def _fmt_tokens(n: int) -> str:
+    """Format token count for display."""
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
 
 
-def _get_mock_ticker_data():
-    """Return mock ticker research data."""
-    return {
-        "ticker": ["SABIC", "SAB", "ZAIN", "ALRAJHI", "2222", "1214", "4050", "6020", "4030", "7020"],
-        "count": [124, 89, 76, 65, 58, 52, 48, 44, 41, 38]
-    }
+def _pct(part: int, total: int) -> str:
+    """Calculate percentage."""
+    if total == 0:
+        return "0"
+    return f"{(part / total) * 100:.0f}"
 
 
-def _get_mock_dau_data():
-    """Return mock daily active users data."""
-    dates = [(datetime.now() - timedelta(days=i)).strftime("%b %d") for i in range(29, -1, -1)]
-    users = [12, 15, 18, 16, 19, 21, 20, 18, 22, 25, 24, 26, 28, 30, 29, 31, 32, 30, 28, 25, 26, 27, 25, 23, 22, 24, 26, 28, 27, 29]
-    return {"date": dates, "users": users}
+def _is_recent(iso_str: str, days: int = 7) -> bool:
+    """Check if an ISO date string is within the last N days."""
+    if not iso_str:
+        return False
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00").replace("+00:00", ""))
+        return dt > datetime.now() - timedelta(days=days)
+    except Exception:
+        return False
 
 
-def _get_mock_feature_adoption():
-    """Return mock feature adoption stats."""
-    return {
-        "dcf_runs": 234,
-        "reports": 487,
-        "exports": 156,
-        "alerts": 89,
-        "notes": 342
-    }
-
-
-def _get_mock_audit_logs():
-    """Return mock audit logs."""
-    now = datetime.now()
-    logs = []
-
-    actions = ["Create", "Update", "Delete", "Export", "Login"]
-    resources = ["Report", "Watchlist", "Alert", "Portfolio", "User"]
-    users = ["mmalki@tamcapital.sa", "analyst1@tamcapital.sa", "analyst2@tamcapital.sa"]
-    details = [
-        "Generated DCF report for SABIC",
-        "Updated user role to analyst",
-        "Exported portfolio data to CSV",
-        "Created price alert threshold",
-        "Added stock to watchlist"
-    ]
-
-    for i in range(100):
-        log_time = now - timedelta(hours=i)
-        logs.append({
-            "timestamp": log_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "user": users[i % len(users)],
-            "action": actions[i % len(actions)],
-            "resource": resources[i % len(resources)],
-            "details": details[i % len(details)]
-        })
-
-    return logs
-
-
-def _send_user_invite(email: str, role: str):
-    """Send invitation email to new user."""
-    # TODO: Integrate with Supabase or email service
-    pass
-
-
-def _update_user_role(user_id: str, new_role: str):
-    """Update user role in database."""
-    # TODO: Integrate with Supabase
-    pass
-
-
-def _toggle_user_status(user_id: str, active: bool):
-    """Activate or deactivate user."""
-    # TODO: Integrate with Supabase
-    pass
-
-
-def _export_audit_log():
-    """Export audit log to CSV."""
-    audit_logs = _get_mock_audit_logs()
-    df = pd.DataFrame(audit_logs)
-    csv = df.to_csv(index=False)
-    st.download_button(
-        label="Download CSV",
-        data=csv,
-        file_name=f"audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv"
-    )
+def _format_time(iso_str: str) -> str:
+    """Format an ISO datetime to a human-readable relative time."""
+    if not iso_str:
+        return "Never"
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00").replace("+00:00", ""))
+        diff = datetime.now() - dt
+        if diff.total_seconds() < 60:
+            return "Just now"
+        if diff.total_seconds() < 3600:
+            return f"{int(diff.total_seconds() / 60)}m ago"
+        if diff.total_seconds() < 86400:
+            return f"{int(diff.total_seconds() / 3600)}h ago"
+        if diff.days == 1:
+            return "Yesterday"
+        if diff.days < 7:
+            return f"{diff.days}d ago"
+        return dt.strftime("%b %d, %Y")
+    except Exception:
+        return str(iso_str)[:10]

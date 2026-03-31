@@ -144,6 +144,13 @@ try:
 except ImportError:
     AUDIT_AVAILABLE = False
 
+# --- Token usage tracking (optional) ---
+try:
+    from data.token_tracker import track_tokens
+    TOKEN_TRACKER_AVAILABLE = True
+except ImportError:
+    TOKEN_TRACKER_AVAILABLE = False
+
 # --- Sentiment tracking (optional) ---
 try:
     from data.sentiment_tracker import extract_sentiment, store_sentiment, generate_sentiment_chart
@@ -621,8 +628,8 @@ def detect_sector_request(message: str) -> str | None:
     return None
 
 
-def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str:
-    """Try a model with retries."""
+def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> tuple:
+    """Try a model with retries. Returns (text, model_used, input_tokens, output_tokens)."""
     import time
     import random
     for attempt in range(retries):
@@ -632,7 +639,9 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return response.content[0].text
+            in_tok = getattr(response.usage, 'input_tokens', 0) if hasattr(response, 'usage') else 0
+            out_tok = getattr(response.usage, 'output_tokens', 0) if hasattr(response, 'usage') else 0
+            return response.content[0].text, model, in_tok, out_tok
         except anthropic.RateLimitError:
             if attempt < retries - 1:
                 base_wait = min(15 * (2 ** attempt), 60)
@@ -649,17 +658,35 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> str
     raise anthropic.RateLimitError("Retries exhausted")
 
 
-def call_claude(prompt: str) -> str:
-    """Call Claude API with fallback."""
+def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
+    """Call Claude API with fallback and token tracking."""
     client = anthropic.Anthropic(api_key=api_key)
     try:
-        return _call_with_retries(client, MODEL, prompt)
+        text, model_used, in_tok, out_tok = _call_with_retries(client, MODEL, prompt)
     except anthropic.RateLimitError:
         st.toast("Switching to faster model to avoid rate limits...")
-        return _call_with_retries(client, FALLBACK_MODEL, prompt)
+        text, model_used, in_tok, out_tok = _call_with_retries(client, FALLBACK_MODEL, prompt)
+
+    # Track token usage
+    if TOKEN_TRACKER_AVAILABLE:
+        try:
+            user = st.session_state.get("user", {})
+            user_id = user.get("id", "anonymous")
+            track_tokens(
+                user_id=user_id,
+                model=model_used,
+                input_tokens=in_tok,
+                output_tokens=out_tok,
+                action=action,
+                ticker=ticker,
+            )
+        except Exception:
+            pass
+
+    return text
 
 
-def generate_section(section_type: str, market_data_str: str, news_str: str) -> str:
+def generate_section(section_type: str, market_data_str: str, news_str: str, ticker: str = "") -> str:
     """Generate a single analysis section."""
     config = SECTION_CONFIG.get(section_type)
     if not config:
@@ -667,7 +694,7 @@ def generate_section(section_type: str, market_data_str: str, news_str: str) -> 
     module = importlib.import_module(config["prompt_module"])
     prompt_template = getattr(module, config["prompt_var"])
     prompt = prompt_template.format(market_data=market_data_str, news_data=news_str)
-    return call_claude(prompt)
+    return call_claude(prompt, action=section_type, ticker=ticker)
 
 
 # ==========================================================
