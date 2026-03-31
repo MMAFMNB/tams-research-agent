@@ -85,19 +85,69 @@ def render_login_page():
     _ensure_admin_exists()
 
     # CSS
-    st.markdown("""<style>
-    [data-testid="stAppViewContainer"] {
+    st.markdown(f"""<style>
+    [data-testid="stAppViewContainer"] {{
         display: flex; align-items: center; justify-content: center;
         min-height: 100vh;
-    }
-    .stTabs [data-baseweb="tab-list"] {
+    }}
+    .stTabs [data-baseweb="tab-list"] {{
         gap: 0;
         justify-content: center;
-    }
-    .stTabs [data-baseweb="tab"] {
+    }}
+    .stTabs [data-baseweb="tab"] {{
         flex: 1;
         justify-content: center;
-    }
+    }}
+
+    /* ---- Form input styling ---- */
+    /* Input field text color */
+    .stTextInput input {{
+        color: {C_TEXT} !important;
+        background-color: rgba(26, 38, 78, 0.35) !important;
+        border: 1px solid {C_BORDER} !important;
+        border-radius: 10px !important;
+        caret-color: {C_TURQUOISE} !important;
+    }}
+    .stTextInput input:focus {{
+        border-color: {C_TURQUOISE} !important;
+        box-shadow: 0 0 0 1px {C_TURQUOISE} !important;
+    }}
+    /* Placeholder text */
+    .stTextInput input::placeholder {{
+        color: {C_TEXT2} !important;
+        opacity: 0.7 !important;
+    }}
+    /* Input labels */
+    .stTextInput label {{
+        color: {C_TEXT2} !important;
+        font-size: 0.85rem !important;
+    }}
+    /* Primary button */
+    .stButton > button[kind="primary"] {{
+        background: linear-gradient(135deg, {C_ACCENT}, {C_TURQUOISE}) !important;
+        border: none !important;
+        color: white !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        padding: 0.55rem 1.5rem !important;
+    }}
+    .stButton > button[kind="primary"]:hover {{
+        box-shadow: 0 4px 20px rgba(26,109,182,0.4) !important;
+    }}
+    /* Secondary button */
+    .stButton > button[kind="secondary"] {{
+        background: transparent !important;
+        border: 1px solid rgba(108,185,182,0.3) !important;
+        color: {C_TEXT2} !important;
+        border-radius: 10px !important;
+    }}
+    /* Tab styling */
+    .stTabs [data-baseweb="tab"] {{
+        color: {C_TEXT2} !important;
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: {C_TEXT} !important;
+    }}
     </style>""", unsafe_allow_html=True)
 
     col1, center, col3 = st.columns([1, 2, 1])
