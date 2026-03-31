@@ -163,7 +163,20 @@ def _render_signin_form():
 
 
 def _render_signup_form():
-    """Render the sign-up / registration form."""
+    """Render the sign-up / registration form with email verification."""
+
+    # Import email verification
+    try:
+        from auth.email_verify import send_and_store, verify_code, is_email_verified
+        EMAIL_VERIFY = True
+    except ImportError:
+        EMAIL_VERIFY = False
+
+    # Check if we're in the verification step
+    if st.session_state.get("verify_pending"):
+        _render_verify_code_form()
+        return
+
     full_name = st.text_input("Full Name", placeholder="Ahmed Al-Rashid", key="signup_name")
     email = st.text_input("Work Email", placeholder="name@company.com", key="signup_email")
     company = st.text_input("Company / Organization", placeholder="TAM Capital", key="signup_company")
@@ -188,13 +201,100 @@ def _render_signup_form():
             st.error("An account with this email already exists. Please sign in.")
             return
 
-        # Try Supabase first, fall back to local
-        success = _register_user(full_name, email, password, company)
-        if success:
-            st.success("Account created! You're now signed in.")
-            st.rerun()
+        if EMAIL_VERIFY:
+            # Store signup data temporarily and send verification email
+            st.session_state["pending_signup"] = {
+                "full_name": full_name,
+                "email": email,
+                "password": password,
+                "company": company,
+            }
+            success, msg, dev_code = send_and_store(email)
+            if success:
+                st.session_state["verify_pending"] = True
+                if dev_code:
+                    # Dev mode — show code directly
+                    st.session_state["dev_verify_code"] = dev_code
+                st.rerun()
+            else:
+                st.error(f"Could not send verification email: {msg}")
         else:
-            st.error("Registration failed. Please try again.")
+            # No email verification — register directly
+            success = _register_user(full_name, email, password, company)
+            if success:
+                st.success("Account created! You're now signed in.")
+                st.rerun()
+            else:
+                st.error("Registration failed. Please try again.")
+
+
+def _render_verify_code_form():
+    """Render the email verification code entry form."""
+    from auth.email_verify import verify_code, send_and_store
+
+    pending = st.session_state.get("pending_signup", {})
+    email = pending.get("email", "")
+
+    st.markdown(f"""
+    <div style="text-align:center; padding:10px 0 15px 0;">
+        <h3 style="color:{C_TEXT}; font-size:1.2rem;">Verify Your Email</h3>
+        <p style="color:{C_TEXT2}; font-size:0.85rem;">
+            We sent a 6-digit code to <strong style="color:{C_TURQUOISE};">{email}</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Dev mode: show code
+    dev_code = st.session_state.get("dev_verify_code")
+    if dev_code:
+        st.info(f"Development mode — your verification code is: **{dev_code}**")
+
+    code = st.text_input("Enter 6-digit code", max_chars=6, key="verify_code_input",
+                         placeholder="123456")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Verify", key="verify_btn", type="primary", use_container_width=True):
+            if not code or len(code) != 6:
+                st.warning("Please enter the 6-digit code")
+                return
+
+            success, msg = verify_code(email, code)
+            if success:
+                # Complete registration
+                reg_success = _register_user(
+                    pending["full_name"],
+                    pending["email"],
+                    pending["password"],
+                    pending.get("company", ""),
+                )
+                if reg_success:
+                    # Clean up
+                    for key in ["verify_pending", "pending_signup", "dev_verify_code"]:
+                        st.session_state.pop(key, None)
+                    st.success("Email verified! You're now signed in.")
+                    st.rerun()
+                else:
+                    st.error("Registration failed after verification. Please try again.")
+            else:
+                st.error(msg)
+
+    with col2:
+        if st.button("Resend Code", key="resend_btn", use_container_width=True):
+            success, msg, dev_code = send_and_store(email)
+            if success:
+                if dev_code:
+                    st.session_state["dev_verify_code"] = dev_code
+                st.success("New code sent!")
+                st.rerun()
+            else:
+                st.error(f"Failed to resend: {msg}")
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    if st.button("Back to Sign Up", key="back_signup_btn"):
+        for key in ["verify_pending", "pending_signup", "dev_verify_code"]:
+            st.session_state.pop(key, None)
+        st.rerun()
 
 
 def _register_user(full_name: str, email: str, password: str, company: str = "") -> bool:

@@ -111,7 +111,7 @@ except ImportError:
 
 # --- Admin panel (optional) ---
 try:
-    from pages.admin import render_admin
+    from views.admin import render_admin
     ADMIN_AVAILABLE = True
 except ImportError:
     ADMIN_AVAILABLE = False
@@ -188,7 +188,7 @@ except ImportError:
 
 # --- Landing page (optional) ---
 try:
-    from pages.landing import render_landing_page
+    from views.landing import render_landing_page
     LANDING_AVAILABLE = True
 except ImportError:
     LANDING_AVAILABLE = False
@@ -224,6 +224,11 @@ def get_logo_base64():
 
 
 LOGO_B64 = get_logo_base64()
+
+# TAM Brand colors (used in sidebar and UI accents)
+C_TURQUOISE = "#6CB9B6"
+C_ACCENT = "#1A6DB6"
+C_DEEP = "#222F62"
 
 
 # ==========================================================
@@ -287,7 +292,7 @@ if "messages" not in st.session_state:
 if "report_files" not in st.session_state:
     st.session_state.report_files = {}
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "dashboard"
+    st.session_state.current_page = "research"
 if "cancel_analysis" not in st.session_state:
     st.session_state.cancel_analysis = False
 if "analysis_running" not in st.session_state:
@@ -342,7 +347,37 @@ NAV_ICONS = {
 # ==========================================================
 # SIDEBAR — Navigation Panel
 # ==========================================================
-with st.sidebar:
+
+# Determine visibility state
+_show_landing = LANDING_AVAILABLE and st.session_state.get("show_landing", True)
+_is_authed = AUTH_AVAILABLE and is_authenticated()
+_show_full_sidebar = not _show_landing and _is_authed
+
+# Hide sidebar completely on landing page
+if _show_landing:
+    st.markdown("""<style>section[data-testid="stSidebar"]{display:none!important;}</style>""", unsafe_allow_html=True)
+elif not _is_authed:
+    # Login page: minimal sidebar with logo only
+    with st.sidebar:
+        if LOGO_B64:
+            st.markdown(
+                f'<div style="text-align:center;padding:30px 0 10px 0;">'
+                f'<img src="data:image/png;base64,{LOGO_B64}" width="160"'
+                f' style="filter:brightness(0) invert(1);opacity:0.85;" />'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+        st.markdown(
+            f'<div style="text-align:center;padding:0 0 20px 0;">'
+            f'<span style="color:{C_TURQUOISE};font-size:0.65rem;font-weight:700;'
+            f'letter-spacing:0.18em;text-transform:uppercase;">Research Terminal</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+# Full sidebar only when authenticated
+if _show_full_sidebar:
+  with st.sidebar:
     # Logo
     if LOGO_B64:
         st.markdown(
