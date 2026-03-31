@@ -21,8 +21,8 @@ PERMISSIONS = {
                      "manage_alerts", "manage_notes"],
     },
     "viewer": {
-        "pages": ["dashboard", "sectors"],
-        "actions": ["view_reports"],
+        "pages": ["dashboard", "research", "sectors", "comparison", "watchlist"],
+        "actions": ["generate_report", "export", "view_reports"],
     },
 }
 

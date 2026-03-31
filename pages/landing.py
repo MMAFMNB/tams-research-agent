@@ -646,6 +646,15 @@ footer{{
       <div class="avatar a3">KH</div>
       <div class="avatar-text" data-en="Built by TAM Capital" data-ar="من تطوير رأس مال TAM">Built by TAM Capital</div>
     </div>
+
+    <button id="heroCta" style="
+      margin-top:28px;padding:16px 48px;font-size:1.05rem;font-weight:600;
+      background:linear-gradient(135deg,#1A6DB6,#6CB9B6);color:#fff;
+      border:none;border-radius:50px;cursor:pointer;letter-spacing:0.5px;
+      transition:all .3s ease;box-shadow:0 4px 24px rgba(26,109,182,0.4);
+    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(26,109,182,0.6)'"
+       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 24px rgba(26,109,182,0.4)'"
+       data-en="Start Research" data-ar="ابدأ البحث">Start Research</button>
   </div>
 
   <div class="scroll-indicator">
@@ -931,6 +940,7 @@ function enterApp(){{
 }}
 document.getElementById('finalCta').addEventListener('click', enterApp);
 document.getElementById('navEnterBtn').addEventListener('click', enterApp);
+document.getElementById('heroCta').addEventListener('click', enterApp);
 </script>
 </body>
 </html>'''
