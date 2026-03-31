@@ -1,8 +1,19 @@
-"""TAM Capital Research Terminal — Landing Page.
+"""TAM Capital Research Terminal — World-Class Landing Page.
 
-A premium marketing-style landing page inspired by tamcapital.sa,
-featuring hero section with animated gradient mesh, feature cards,
-stats counters, CMA badge, and a clear CTA to enter the terminal.
+Inspired by Cirform AI Finance aesthetic:
+- Electric light streak hero animations (diagonal fiber optic rays)
+- Floating glass revenue card with market data
+- Serif accent typography (Playfair Display)
+- Animated scroll indicator
+- Avatar group showcase
+- Interactive particle constellation canvas
+- Live TASI ticker ribbon
+- Parallax scroll sections with intersection observer
+- Animated counter stats
+- 3D tilt feature cards with glow
+- Bilingual AR/EN toggle
+- Interactive mini chart demo (canvas)
+- Smooth scroll reveal animations
 """
 
 import streamlit as st
@@ -11,7 +22,6 @@ import os
 
 
 def _get_logo_b64():
-    """Get TAM logo as base64."""
     logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "tam_logo.png")
     if os.path.exists(logo_path):
         with open(logo_path, "rb") as f:
@@ -20,638 +30,959 @@ def _get_logo_b64():
 
 
 def render_landing_page():
-    """Render the full landing page with hero, features, stats, and CTA."""
+    """Render the full animated landing page with Cirform design."""
 
     logo_b64 = _get_logo_b64()
-    logo_img = (
-        f'<img src="data:image/png;base64,{logo_b64}" height="52" '
-        f'style="filter:brightness(0) invert(1);opacity:0.95;" />'
-        if logo_b64
-        else '<span style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;">TAM CAPITAL</span>'
-    )
+    logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
 
-    # Hide Streamlit default elements for clean landing page
+    # Hide Streamlit chrome for immersive experience
     st.markdown(
-        """
-        <style>
-        /* Hide Streamlit header/footer for landing page */
-        #MainMenu {visibility: hidden;}
-        header[data-testid="stHeader"] {display: none !important;}
-        footer {display: none !important;}
-        .stDeployButton {display: none !important;}
-        div[data-testid="stToolbar"] {display: none !important;}
-        section[data-testid="stSidebar"] {display: none !important;}
-        .block-container {padding-top: 0 !important; max-width: 100% !important;}
-
-        /* ===== LANDING PAGE STYLES ===== */
-
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-        .landing-root {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: #E6EDF3;
-            overflow-x: hidden;
-        }
-
-        /* --- Animated Gradient Mesh Background --- */
-        .hero-section {
-            position: relative;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 60px 24px;
-            background: linear-gradient(135deg, #070B14 0%, #0E1A2E 30%, #1A2B55 60%, #222F62 100%);
-            overflow: hidden;
-        }
-
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at 20% 50%, rgba(26, 109, 182, 0.15) 0%, transparent 50%),
-                        radial-gradient(ellipse at 80% 20%, rgba(108, 185, 182, 0.12) 0%, transparent 40%),
-                        radial-gradient(ellipse at 50% 80%, rgba(34, 47, 98, 0.20) 0%, transparent 50%);
-            animation: meshFloat 20s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes meshFloat {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(2%, -3%) rotate(1deg); }
-            50% { transform: translate(-1%, 2%) rotate(-0.5deg); }
-            75% { transform: translate(-2%, -1%) rotate(0.5deg); }
-        }
-
-        /* Glowing orb effects */
-        .hero-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            pointer-events: none;
-            animation: orbPulse 8s ease-in-out infinite;
-        }
-        .hero-orb-1 {
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, #1A6DB6, transparent);
-            top: 10%; right: 10%;
-            animation-delay: 0s;
-        }
-        .hero-orb-2 {
-            width: 300px; height: 300px;
-            background: radial-gradient(circle, #6CB9B6, transparent);
-            bottom: 15%; left: 5%;
-            animation-delay: 3s;
-        }
-        .hero-orb-3 {
-            width: 250px; height: 250px;
-            background: radial-gradient(circle, #22C55E, transparent);
-            top: 50%; left: 45%;
-            animation-delay: 5s;
-            opacity: 0.2;
-        }
-
-        @keyframes orbPulse {
-            0%, 100% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.15); opacity: 0.5; }
-        }
-
-        /* Hero content */
-        .hero-content {
-            position: relative;
-            z-index: 2;
-            max-width: 900px;
-        }
-
-        .hero-logo {
-            margin-bottom: 32px;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease forwards;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            padding: 6px 18px;
-            background: rgba(108, 185, 182, 0.12);
-            border: 1px solid rgba(108, 185, 182, 0.25);
-            border-radius: 100px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: #6CB9B6;
-            margin-bottom: 28px;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease 0.15s forwards;
-        }
-
-        .hero-title {
-            font-size: clamp(2.2rem, 5vw, 3.8rem);
-            font-weight: 900;
-            letter-spacing: -0.04em;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease 0.3s forwards;
-        }
-
-        .hero-title .gradient-text {
-            background: linear-gradient(135deg, #5B9BD5 0%, #6CB9B6 50%, #22C55E 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .hero-subtitle {
-            font-size: clamp(1rem, 2vw, 1.25rem);
-            color: #8B949E;
-            max-width: 640px;
-            margin: 0 auto 40px;
-            line-height: 1.65;
-            font-weight: 400;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease 0.45s forwards;
-        }
-
-        .hero-cta-group {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease 0.6s forwards;
-        }
-
-        .cta-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #1A6DB6 0%, #6CB9B6 100%);
-            color: white;
-            font-weight: 700;
-            font-size: 1rem;
-            border-radius: 14px;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(26, 109, 182, 0.3);
-            cursor: pointer;
-            border: none;
-        }
-        .cta-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(26, 109, 182, 0.45);
-        }
-
-        .cta-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 36px;
-            background: rgba(34, 47, 98, 0.25);
-            backdrop-filter: blur(12px);
-            color: #E6EDF3;
-            font-weight: 600;
-            font-size: 1rem;
-            border-radius: 14px;
-            border: 1px solid rgba(108, 185, 182, 0.15);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .cta-secondary:hover {
-            background: rgba(34, 47, 98, 0.40);
-            border-color: rgba(108, 185, 182, 0.30);
-        }
-
-        @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- Stats Bar --- */
-        .stats-bar {
-            display: flex;
-            justify-content: center;
-            gap: 48px;
-            flex-wrap: wrap;
-            margin-top: 64px;
-            padding-top: 40px;
-            border-top: 1px solid rgba(108, 185, 182, 0.08);
-            opacity: 0;
-            animation: fadeSlideUp 0.8s ease 0.75s forwards;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #5B9BD5, #6CB9B6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.03em;
-        }
-        .stat-label {
-            font-size: 0.72rem;
-            color: #4A5568;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            font-weight: 600;
-            margin-top: 4px;
-        }
-
-        /* --- Features Section --- */
-        .features-section {
-            background: #070B14;
-            padding: 100px 24px;
-        }
-
-        .section-header {
-            text-align: center;
-            max-width: 700px;
-            margin: 0 auto 64px;
-        }
-        .section-eyebrow {
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: #6CB9B6;
-            margin-bottom: 12px;
-        }
-        .section-title {
-            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            margin-bottom: 16px;
-        }
-        .section-desc {
-            font-size: 1rem;
-            color: #8B949E;
-            line-height: 1.65;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .feature-card {
-            background: rgba(26, 38, 78, 0.12);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(108, 185, 182, 0.06);
-            border-radius: 20px;
-            padding: 32px;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #1A6DB6, #6CB9B6, transparent);
-            opacity: 0;
-            transition: opacity 0.35s ease;
-        }
-        .feature-card:hover {
-            background: rgba(26, 38, 78, 0.22);
-            border-color: rgba(108, 185, 182, 0.15);
-            transform: translateY(-4px);
-        }
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-
-        .feature-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            margin-bottom: 18px;
-        }
-        .fi-blue { background: rgba(26, 109, 182, 0.15); }
-        .fi-teal { background: rgba(108, 185, 182, 0.15); }
-        .fi-green { background: rgba(34, 197, 94, 0.15); }
-        .fi-purple { background: rgba(139, 92, 246, 0.15); }
-
-        .feature-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.01em;
-        }
-        .feature-desc {
-            font-size: 0.88rem;
-            color: #8B949E;
-            line-height: 1.6;
-        }
-
-        /* --- CMA Section --- */
-        .cma-section {
-            background: linear-gradient(135deg, #0E1A2E 0%, #1A2B55 50%, #222F62 100%);
-            padding: 80px 24px;
-            text-align: center;
-        }
-
-        .cma-badge {
-            width: 72px;
-            height: 72px;
-            background: linear-gradient(135deg, #22C55E, #16A34A);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-            font-size: 2rem;
-            box-shadow: 0 8px 32px rgba(34, 197, 94, 0.25);
-        }
-
-        .cma-title {
-            font-size: 1.6rem;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-        .cma-text {
-            color: #8B949E;
-            max-width: 700px;
-            margin: 0 auto;
-            line-height: 1.7;
-            font-size: 0.95rem;
-        }
-
-        /* --- Final CTA Section --- */
-        .final-cta {
-            background: #070B14;
-            padding: 100px 24px;
-            text-align: center;
-        }
-
-        .final-cta-title {
-            font-size: clamp(1.8rem, 4vw, 2.8rem);
-            font-weight: 900;
-            letter-spacing: -0.04em;
-            margin-bottom: 16px;
-        }
-        .final-cta-desc {
-            color: #8B949E;
-            font-size: 1.1rem;
-            margin-bottom: 40px;
-        }
-
-        /* --- Footer --- */
-        .landing-footer {
-            background: #05080F;
-            padding: 40px 24px;
-            text-align: center;
-            border-top: 1px solid rgba(108, 185, 182, 0.06);
-        }
-        .footer-text {
-            font-size: 0.75rem;
-            color: #4A5568;
-            line-height: 1.8;
-        }
-        .footer-text a {
-            color: #6CB9B6;
-            text-decoration: none;
-        }
-
-        /* Nav bar on top */
-        .landing-nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 40px;
-            background: rgba(7, 11, 20, 0.7);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(108, 185, 182, 0.06);
-        }
-        .nav-logo img {
-            height: 36px;
-            filter: brightness(0) invert(1);
-            opacity: 0.9;
-        }
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            align-items: center;
-        }
-        .nav-links a {
-            color: #8B949E;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .nav-links a:hover {
-            color: #E6EDF3;
-        }
-
-        /* Scroll animation triggers */
-        .scroll-reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
-        }
-        .scroll-reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        </style>
-        """,
+        """<style>
+        #MainMenu, header[data-testid="stHeader"], footer,
+        .stDeployButton, div[data-testid="stToolbar"],
+        section[data-testid="stSidebar"] { display:none!important; }
+        .block-container { padding:0!important; max-width:100%!important; }
+        .stMainBlockContainer { padding:0!important; }
+        iframe { border: none; }
+        </style>""",
         unsafe_allow_html=True,
     )
 
-    # The full landing page as a single HTML block
-    st.markdown(
-        f"""
-        <div class="landing-root">
+    html = f'''<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital@1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{{box-sizing:border-box;margin:0;padding:0;}}
+html{{scroll-behavior:smooth;overflow-x:hidden;}}
+body{{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#050810;color:#E6EDF3;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}}
+/* RTL support */
+[dir="rtl"] body {{ direction: rtl; text-align: right; }}
+[dir="rtl"] .nav-links {{ flex-direction: row-reverse; }}
+[dir="rtl"] .feature-card {{ text-align: right; }}
+[dir="rtl"] .stat-item {{ text-align: center; }}
 
-            <!-- ===== HERO SECTION ===== -->
-            <div class="hero-section">
-                <div class="hero-orb hero-orb-1"></div>
-                <div class="hero-orb hero-orb-2"></div>
-                <div class="hero-orb hero-orb-3"></div>
+/* ===== NAVIGATION ===== */
+.nav{{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px 48px;
+  background:rgba(5,8,16,0.4);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(108,185,182,0.06);
+  transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+}}
+.nav.scrolled{{
+  padding:12px 48px;
+  background:rgba(5,8,16,0.85);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}}
+.nav-logo img{{height:32px;filter:brightness(0) invert(1);opacity:0.92;transition:all 0.3s;}}
+.nav-logo span{{font-size:1.3rem;font-weight:800;letter-spacing:-0.03em;color:#fff;}}
+.nav-links{{display:flex;gap:28px;align-items:center;}}
+.nav-links a{{
+  color:rgba(230,237,243,0.6);text-decoration:none;font-size:0.82rem;
+  font-weight:500;letter-spacing:0.02em;transition:all 0.25s;position:relative;
+}}
+.nav-links a:hover{{color:#E6EDF3;}}
+.nav-links a::after{{
+  content:'';position:absolute;bottom:-4px;left:0;width:0;height:1.5px;
+  background:linear-gradient(90deg,#1A6DB6,#6CB9B6);transition:width 0.3s;
+}}
+.nav-links a:hover::after{{width:100%;}}
+.nav-cta{{
+  padding:10px 24px;background:linear-gradient(135deg,#1A6DB6,#6CB9B6);
+  color:#fff;font-weight:700;font-size:0.82rem;border-radius:12px;
+  border:none;cursor:pointer;transition:all 0.3s;letter-spacing:0.01em;
+}}
+.nav-cta:hover{{transform:translateY(-1px);box-shadow:0 6px 24px rgba(26,109,182,0.4);}}
+.lang-toggle{{
+  padding:6px 14px;background:rgba(108,185,182,0.08);border:1px solid rgba(108,185,182,0.15);
+  border-radius:8px;color:#6CB9B6;font-size:0.75rem;font-weight:600;cursor:pointer;
+  transition:all 0.25s;
+}}
+.lang-toggle:hover{{background:rgba(108,185,182,0.18);}}
 
-                <div class="hero-content">
-                    <div class="hero-logo">{logo_img}</div>
-                    <div class="hero-badge">CMA Licensed &bull; AI-Powered Research</div>
-                    <h1 class="hero-title">
-                        Invest Smarter.<br/>
-                        <span class="gradient-text">Research with Purpose.</span>
-                    </h1>
-                    <p class="hero-subtitle">
-                        Institutional-grade equity research for the Saudi market.
-                        Powered by AI, built for TAM Capital analysts.
-                        Goldman-style reports in seconds, not days.
-                    </p>
+/* ===== TICKER RIBBON ===== */
+.ticker-ribbon{{
+  position:fixed;top:64px;left:0;right:0;z-index:999;
+  background:rgba(5,8,16,0.7);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(108,185,182,0.04);
+  overflow:hidden;height:32px;display:flex;align-items:center;
+}}
+.ticker-track{{
+  display:flex;gap:48px;animation:tickerScroll 40s linear infinite;
+  white-space:nowrap;
+}}
+@keyframes tickerScroll{{
+  0%{{transform:translateX(0);}}
+  100%{{transform:translateX(-50%);}}
+}}
+.ticker-item{{
+  font-size:0.72rem;font-weight:600;letter-spacing:0.02em;
+  display:flex;gap:8px;align-items:center;
+}}
+.ticker-symbol{{color:#8B949E;}}
+.ticker-price{{color:#E6EDF3;}}
+.ticker-change.up{{color:#22C55E;}}
+.ticker-change.down{{color:#FF6B6B;}}
 
-                    <div class="stats-bar">
-                        <div class="stat-item">
-                            <div class="stat-value">200+</div>
-                            <div class="stat-label">Tadawul Tickers</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">8</div>
-                            <div class="stat-label">Sector Coverage</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">5yr</div>
-                            <div class="stat-label">Financial History</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">&lt;60s</div>
-                            <div class="stat-label">Full Report Time</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+/* ===== HERO SECTION WITH LIGHT STREAKS ===== */
+.hero{{
+  position:relative;height:900px;width:100%;overflow:hidden;
+  margin-top:96px;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;
+}}
 
-            <!-- ===== FEATURES SECTION ===== -->
-            <div class="features-section">
-                <div class="section-header">
-                    <div class="section-eyebrow">Platform Capabilities</div>
-                    <h2 class="section-title">Everything You Need for<br/>Saudi Market Research</h2>
-                    <p class="section-desc">
-                        From fundamental analysis to AI-driven signals &mdash;
-                        a complete toolkit for the modern investment professional.
-                    </p>
-                </div>
+/* Electric Light Streaks Background */
+.hero-bg{{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:#070B14;
+}}
 
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon fi-blue">\U0001F4CA</div>
-                        <div class="feature-title">Deep Equity Analysis</div>
-                        <div class="feature-desc">
-                            Fundamental, technical, and earnings analysis modeled after
-                            Goldman Sachs, JPMorgan, and Morgan Stanley research frameworks.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-teal">\U0001F4C8</div>
-                        <div class="feature-title">Interactive Charts</div>
-                        <div class="feature-desc">
-                            Plotly-powered candlestick, RSI, MACD, and multi-ticker
-                            comparison charts with real-time Tadawul data.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-green">\U0001F4B0</div>
-                        <div class="feature-title">DCF Valuation Engine</div>
-                        <div class="feature-desc">
-                            Built-in discounted cash flow model with sensitivity analysis,
-                            scenario testing, and Saudi-specific WACC assumptions.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-purple">\U0001F916</div>
-                        <div class="feature-title">AI Morning Brief</div>
-                        <div class="feature-desc">
-                            Daily AI-generated market briefing covering your watchlist
-                            with news impact assessment and actionable insights.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-blue">\U0001F6E1</div>
-                        <div class="feature-title">Portfolio Risk Analytics</div>
-                        <div class="feature-desc">
-                            Value-at-Risk, Sharpe ratio, max drawdown, and correlation
-                            matrix for your Saudi equity portfolio.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-teal">\U0001F3AF</div>
-                        <div class="feature-title">Peer Benchmarking</div>
-                        <div class="feature-desc">
-                            Compare any stock against sector peers across 16 financial
-                            metrics with quartile heatmaps spanning 8 Tadawul sectors.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-green">\U0001F514</div>
-                        <div class="feature-title">Smart Alert Engine</div>
-                        <div class="feature-desc">
-                            Custom alert rules for price targets, volume spikes,
-                            technical signals, and news keywords with real-time monitoring.
-                        </div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon fi-purple">\U0001F4C4</div>
-                        <div class="feature-title">Multi-Format Export</div>
-                        <div class="feature-desc">
-                            Export TAM-branded research reports as Word, PDF, PowerPoint,
-                            or Excel with professional formatting and letterhead.
-                        </div>
-                    </div>
-                </div>
-            </div>
+.light-streak{{
+  position:absolute;opacity:0.5;
+}}
 
-            <!-- ===== CMA SECTION ===== -->
-            <div class="cma-section">
-                <div class="cma-badge">\u2713</div>
-                <h2 class="cma-title">Licensed by the Capital Market Authority</h2>
-                <p class="cma-text">
-                    TAM Capital is a Saudi closed joint-stock company licensed by the
-                    Capital Market Authority (CMA) of the Kingdom of Saudi Arabia.
-                    License No. 12-24297. Investment management, fund operation, and
-                    arrangement in securities business.
-                </p>
-            </div>
+.streak-1{{
+  top:-20%;left:-10%;width:800px;height:20px;
+  background:linear-gradient(135deg,transparent,#1A6DB6,#6CB9B6,transparent);
+  transform:skewY(-45deg);
+  animation:streakFlow1 6s ease-in-out infinite;
+}}
 
-            <!-- ===== FINAL CTA ===== -->
-            <div class="final-cta">
-                <h2 class="final-cta-title">Ready to Transform Your Research?</h2>
-                <p class="final-cta-desc">
-                    Enter the terminal and start generating institutional-grade analysis.
-                </p>
-            </div>
+.streak-2{{
+  top:20%;right:-15%;width:900px;height:25px;
+  background:linear-gradient(135deg,transparent,#6CB9B6,#E879F9,transparent);
+  transform:skewY(-45deg);
+  animation:streakFlow2 8s ease-in-out 1s infinite;
+}}
 
-            <!-- ===== FOOTER ===== -->
-            <div class="landing-footer">
-                <p class="footer-text">
-                    &copy; 2025 TAM Capital. All rights reserved.
-                    CMA License No. 12-24297<br/>
-                    <a href="https://tamcapital.sa">tamcapital.sa</a>
-                    &nbsp;&bull;&nbsp;
-                    Riyadh, Kingdom of Saudi Arabia
-                </p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+.streak-3{{
+  bottom:15%;left:-5%;width:1000px;height:30px;
+  background:linear-gradient(135deg,transparent,#E879F9,#1A6DB6,transparent);
+  transform:skewY(-45deg);
+  animation:streakFlow3 7s ease-in-out 2s infinite;
+}}
 
-    # Streamlit button to enter the terminal (placed after the HTML)
+@keyframes streakFlow1{{
+  0%{{transform:translateX(-100%) skewY(-45deg);opacity:0;}}
+  50%{{opacity:0.5;}}
+  100%{{transform:translateX(150vw) skewY(-45deg);opacity:0;}}
+}}
+
+@keyframes streakFlow2{{
+  0%{{transform:translateX(100%) skewY(-45deg);opacity:0;}}
+  50%{{opacity:0.5;}}
+  100%{{transform:translateX(-50vw) skewY(-45deg);opacity:0;}}
+}}
+
+@keyframes streakFlow3{{
+  0%{{transform:translateX(-150%) skewY(-45deg);opacity:0;}}
+  50%{{opacity:0.5;}}
+  100%{{transform:translateX(100vw) skewY(-45deg);opacity:0;}}
+}}
+
+/* Revenue Card - Floating Glass */
+.revenue-card{{
+  position:absolute;top:60px;right:40px;
+  background:rgba(26,109,182,0.08);backdrop-filter:blur(12px);
+  border:1px solid rgba(108,185,182,0.15);
+  padding:24px;border-radius:20px;
+  width:280px;animation:floatCard 4s ease-in-out infinite;
+  z-index:10;
+}}
+
+@keyframes floatCard{{
+  0%,100%{{transform:translateY(0px);}}
+  50%{{transform:translateY(-15px);}}
+}}
+
+.revenue-label{{
+  font-size:0.75rem;color:#8B949E;font-weight:600;letter-spacing:0.05em;
+  text-transform:uppercase;margin-bottom:8px;
+}}
+
+.revenue-value{{
+  font-size:2.4rem;font-weight:900;color:#E6EDF3;letter-spacing:-0.02em;
+  margin-bottom:6px;
+}}
+
+.revenue-change{{
+  color:#22C55E;font-size:1rem;font-weight:700;margin-bottom:12px;
+  display:flex;align-items:center;gap:4px;
+}}
+
+.revenue-subtitle{{
+  font-size:0.7rem;color:#4A5568;font-weight:500;
+}}
+
+/* Hero Content */
+.hero-content{{
+  position:relative;z-index:5;text-align:center;max-width:900px;padding:0 40px;
+}}
+
+.hero-title{{
+  font-size:clamp(3rem,6vw,5rem);font-weight:900;line-height:1.15;
+  letter-spacing:-0.02em;margin-bottom:20px;color:#E6EDF3;
+}}
+
+.hero-title-accent{{
+  font-family:'Playfair Display',serif;font-style:italic;
+  color:#6CB9B6;font-size:inherit;font-weight:400;
+}}
+
+.hero-subtitle{{
+  font-size:1.3rem;color:#8B949E;font-weight:400;line-height:1.6;
+  margin-bottom:40px;
+}}
+
+/* Scroll Indicator */
+.scroll-indicator{{
+  position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+  z-index:10;display:flex;flex-direction:column;align-items:center;gap:8px;
+  animation:bounce 2s ease-in-out infinite;
+}}
+
+.scroll-text{{
+  font-size:0.75rem;font-weight:600;color:#6CB9B6;letter-spacing:0.05em;
+  text-transform:uppercase;
+}}
+
+.scroll-arrow{{
+  font-size:1.2rem;color:#6CB9B6;
+}}
+
+@keyframes bounce{{
+  0%,100%{{transform:translateY(0);}}
+  50%{{transform:translateY(6px);}}
+}}
+
+/* Avatar Group */
+.avatar-group{{
+  display:flex;align-items:center;gap:-8px;justify-content:center;
+  margin-top:40px;padding:20px;
+}}
+
+.avatar{{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:0.85rem;color:#fff;
+  border:2px solid #050810;margin-left:-12px;
+}}
+
+.avatar:first-child{{margin-left:0;}}
+
+.avatar.a1{{background:linear-gradient(135deg,#1A6DB6,#6CB9B6);}}
+.avatar.a2{{background:linear-gradient(135deg,#E879F9,#FF6B6B);}}
+.avatar.a3{{background:linear-gradient(135deg,#22C55E,#1A6DB6);}}
+
+.avatar-text{{
+  margin-left:16px;font-size:0.85rem;color:#8B949E;font-weight:500;
+}}
+
+/* Canvas for Particle Constellation */
+#particleCanvas{{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+}}
+
+/* ===== SECTIONS ===== */
+.section{{
+  position:relative;padding:100px 48px;
+}}
+
+.section-bg{{
+  position:absolute;top:0;left:0;width:100%;height:100%;background:inherit;
+}}
+
+.section-content{{
+  position:relative;z-index:2;max-width:1400px;margin:0 auto;
+}}
+
+/* ===== FEATURES SECTION ===== */
+.features-section{{
+  background:#070B14;
+}}
+
+.section-title{{
+  font-size:2.8rem;font-weight:900;text-align:center;
+  margin-bottom:60px;letter-spacing:-0.01em;
+  color:#E6EDF3;
+}}
+
+.features-grid{{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  gap:28px;
+}}
+
+.feature-card{{
+  position:relative;padding:32px;border-radius:20px;
+  background:linear-gradient(135deg,rgba(34,197,94,0.05),rgba(26,109,182,0.05));
+  border:1px solid rgba(108,185,182,0.1);
+  cursor:pointer;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+  overflow:hidden;
+}}
+
+.feature-card::before{{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(circle at var(--mouse-x,50%) var(--mouse-y,50%),
+    rgba(108,185,182,0.15) 0%,transparent 60%);
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}}
+
+.feature-card:hover{{
+  border-color:rgba(108,185,182,0.3);
+  transform:translateY(-4px);
+}}
+
+.feature-card:hover::before{{opacity:1;}}
+
+.feature-icon{{
+  font-size:2.8rem;margin-bottom:16px;
+}}
+
+.feature-title{{
+  font-size:1.3rem;font-weight:700;margin-bottom:12px;
+  color:#E6EDF3;
+}}
+
+.feature-desc{{
+  font-size:0.95rem;color:#8B949E;line-height:1.6;
+}}
+
+/* ===== STATS BAR ===== */
+.stats-section{{
+  background:#222F62;padding:60px 48px;
+}}
+
+.stats-container{{
+  max-width:1400px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:40px;text-align:center;
+}}
+
+.stat-item{{
+  animation:slideUp 0.8s ease-out forwards;
+}}
+
+.stat-item:nth-child(2){{animation-delay:0.1s;}}
+.stat-item:nth-child(3){{animation-delay:0.2s;}}
+.stat-item:nth-child(4){{animation-delay:0.3s;}}
+
+@keyframes slideUp{{
+  from{{opacity:0;transform:translateY(20px);}}
+  to{{opacity:1;transform:translateY(0);}}
+}}
+
+.stat-number{{
+  font-size:2.8rem;font-weight:900;color:#22C55E;letter-spacing:-0.01em;
+  margin-bottom:8px;
+}}
+
+.stat-label{{
+  font-size:0.9rem;color:#A0AEC0;font-weight:500;
+}}
+
+/* ===== DEMO SECTION ===== */
+.demo-section{{
+  background:#050810;padding:100px 48px;
+}}
+
+.demo-container{{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;
+}}
+
+.demo-content h3{{
+  font-size:2.2rem;font-weight:900;margin-bottom:20px;color:#E6EDF3;
+}}
+
+.demo-content p{{
+  font-size:1.05rem;color:#8B949E;line-height:1.8;margin-bottom:24px;
+}}
+
+.demo-list{{
+  list-style:none;
+}}
+
+.demo-list li{{
+  font-size:0.95rem;color:#A0AEC0;margin-bottom:16px;
+  padding-left:28px;position:relative;
+}}
+
+.demo-list li::before{{
+  content:'✓';position:absolute;left:0;color:#22C55E;font-weight:bold;
+}}
+
+#demoChart{{
+  width:100%;height:300px;border-radius:12px;
+  background:rgba(34,44,98,0.4);border:1px solid rgba(108,185,182,0.1);
+}}
+
+/* ===== CMA BADGE SECTION ===== */
+.badge-section{{
+  background:#222F62;padding:80px 48px;text-align:center;
+}}
+
+.badge-title{{
+  font-size:1.8rem;font-weight:700;margin-bottom:40px;color:#E6EDF3;
+}}
+
+.badge-container{{
+  display:flex;justify-content:center;gap:40px;flex-wrap:wrap;
+  max-width:1200px;margin:0 auto;
+}}
+
+.badge-item{{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:24px;background:rgba(26,109,182,0.1);border-radius:16px;
+  border:1px solid rgba(108,185,182,0.15);
+}}
+
+.badge-icon{{
+  font-size:3rem;
+}}
+
+.badge-text{{
+  font-size:0.95rem;font-weight:600;color:#A0AEC0;
+}}
+
+/* ===== FINAL CTA ===== */
+.cta-section{{
+  background:linear-gradient(135deg,#222F62,#070B14);
+  padding:100px 48px;text-align:center;
+}}
+
+.cta-title{{
+  font-size:2.6rem;font-weight:900;margin-bottom:20px;
+  color:#E6EDF3;letter-spacing:-0.01em;
+}}
+
+.cta-subtitle{{
+  font-size:1.1rem;color:#8B949E;margin-bottom:40px;
+  max-width:700px;margin-left:auto;margin-right:auto;
+}}
+
+#finalCta{{
+  padding:14px 40px;background:linear-gradient(135deg,#1A6DB6,#6CB9B6);
+  color:#fff;font-weight:700;font-size:0.95rem;
+  border:none;border-radius:12px;cursor:pointer;
+  transition:all 0.3s;letter-spacing:0.01em;
+}}
+
+#finalCta:hover{{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(26,109,182,0.4);
+}}
+
+/* ===== FOOTER ===== */
+footer{{
+  background:#050810;border-top:1px solid rgba(108,185,182,0.06);
+  padding:40px 48px;text-align:center;
+}}
+
+.footer-text{{
+  font-size:0.85rem;color:#4A5568;line-height:1.8;
+}}
+
+.footer-links{{
+  display:flex;justify-content:center;gap:24px;margin-top:16px;
+  flex-wrap:wrap;
+}}
+
+.footer-links a{{
+  color:#6CB9B6;text-decoration:none;font-weight:500;
+  transition:color 0.25s;
+}}
+
+.footer-links a:hover{{color:#E6EDF3;}}
+
+/* ===== SCROLL REVEAL ===== */
+.reveal{{
+  opacity:0;transform:translateY(20px);
+  transition:opacity 0.8s ease-out,transform 0.8s ease-out;
+}}
+
+.reveal.active{{
+  opacity:1;transform:translateY(0);
+}}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){{
+  .nav{{padding:16px 24px;}}
+  .nav-links{{gap:16px;}}
+  .nav-links a,.nav-cta{{font-size:0.75rem;}}
+  .hero{{height:600px;margin-top:96px;}}
+  .hero-title{{font-size:2.2rem;}}
+  .revenue-card{{width:220px;right:20px;top:40px;padding:16px;}}
+  .revenue-value{{font-size:1.8rem;}}
+  .demo-container{{grid-template-columns:1fr;gap:40px;}}
+  .badge-container{{flex-direction:column;align-items:center;}}
+  .section{{padding:60px 24px;}}
+  .section-title{{font-size:2rem;}}
+  .features-grid{{gap:20px;}}
+  .feature-card{{padding:24px;}}
+}}
+
+@media(max-width:480px){{
+  .nav{{padding:12px 16px;}}
+  .nav-logo span{{font-size:1rem;}}
+  .nav-links{{gap:12px;}}
+  .hero{{height:500px;}}
+  .hero-title{{font-size:1.6rem;}}
+  .hero-subtitle{{font-size:1rem;}}
+  .revenue-card{{display:none;}}
+  .avatar-group{{flex-direction:column;gap:12px;}}
+  .section{{padding:40px 16px;}}
+  .section-title{{font-size:1.4rem;margin-bottom:32px;}}
+  .demo-container{{padding:0;}}
+  .cta-title{{font-size:1.6rem;}}
+  .badge-container{{gap:16px;}}
+}}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="navbar">
+  <div class="nav-logo">
+    <img src="{logo_src}" alt="TAM Logo"/>
+  </div>
+  <div class="nav-links">
+    <a href="#features" data-en="Features" data-ar="المميزات">Features</a>
+    <a href="#about" data-en="About" data-ar="حول">About</a>
+    <a href="#demo" data-en="Demo" data-ar="عرض">Demo</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <button class="lang-toggle" onclick="toggleLang()" data-en="AR" data-ar="EN">AR</button>
+    <button class="nav-cta" id="navEnterBtn" data-en="Sign Up" data-ar="اشترك">Sign Up</button>
+  </div>
+</nav>
+
+<!-- Ticker Ribbon -->
+<div class="ticker-ribbon">
+  <div class="ticker-track" id="tickerTrack">
+    <span class="ticker-item">
+      <span class="ticker-symbol">TASI</span>
+      <span class="ticker-price">12,450.30</span>
+      <span class="ticker-change up">+0.6%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">SABIC</span>
+      <span class="ticker-price">98.40</span>
+      <span class="ticker-change down">-0.3%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">STC</span>
+      <span class="ticker-price">142.80</span>
+      <span class="ticker-change up">+1.2%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">Al Rajhi</span>
+      <span class="ticker-price">168.20</span>
+      <span class="ticker-change up">+0.8%</span>
+    </span>
+  </div>
+  <div class="ticker-track" id="tickerTrack2" style="animation:tickerScroll 40s linear infinite 20s;">
+    <span class="ticker-item">
+      <span class="ticker-symbol">TASI</span>
+      <span class="ticker-price">12,450.30</span>
+      <span class="ticker-change up">+0.6%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">SABIC</span>
+      <span class="ticker-price">98.40</span>
+      <span class="ticker-change down">-0.3%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">STC</span>
+      <span class="ticker-price">142.80</span>
+      <span class="ticker-change up">+1.2%</span>
+    </span>
+    <span class="ticker-item">
+      <span class="ticker-symbol">Al Rajhi</span>
+      <span class="ticker-price">168.20</span>
+      <span class="ticker-change up">+0.8%</span>
+    </span>
+  </div>
+</div>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="light-streak streak-1"></div>
+    <div class="light-streak streak-2"></div>
+    <div class="light-streak streak-3"></div>
+  </div>
+
+  <canvas id="particleCanvas"></canvas>
+
+  <div class="revenue-card">
+    <div class="revenue-label">📈 TASI Index</div>
+    <div class="revenue-value">12,450.30</div>
+    <div class="revenue-change">+0.6% ▲</div>
+    <div class="revenue-subtitle">Last 30 days</div>
+  </div>
+
+  <div class="hero-content">
+    <h1 class="hero-title">
+      Invest Smarter.
+      <br/>
+      Research for <span class="hero-title-accent">Saudi Markets</span>
+    </h1>
+    <p class="hero-subtitle" data-en="Institutional-grade research and AI-powered insights for Saudi Arabia's fastest-growing investors." data-ar="بحث بمستوى مؤسسي ورؤى مدعومة بالذكاء الاصطناعي للمستثمرين الأسرع نموا في المملكة العربية السعودية.">
+      Institutional-grade research and AI-powered insights for Saudi Arabia's fastest-growing investors.
+    </p>
+
+    <div class="avatar-group">
+      <div class="avatar a1">MM</div>
+      <div class="avatar a2">AS</div>
+      <div class="avatar a3">KH</div>
+      <div class="avatar-text" data-en="Meet 10+ TAM analysts" data-ar="التقابل مع +10 محللين">Meet 10+ TAM analysts</div>
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    <span class="scroll-text" data-en="SCROLL" data-ar="انزلق">SCROLL</span>
+    <span class="scroll-arrow">↓</span>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+  <div class="section-content">
+    <h2 class="section-title reveal" data-en="Why Choose TAM Capital?" data-ar="لماذا تختار رأس مال TAM؟">Why Choose TAM Capital?</h2>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">📊</div>
+        <h3 class="feature-title" data-en="Real-Time Analytics" data-ar="تحليلات فورية">Real-Time Analytics</h3>
+        <p class="feature-desc" data-en="Live market data and portfolio tracking powered by proprietary algorithms." data-ar="تتبع السوق المباشر والمحفظة مدعومة بخوارزميات خاصة بنا.">Live market data and portfolio tracking powered by proprietary algorithms.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🤖</div>
+        <h3 class="feature-title" data-en="AI-Powered Research" data-ar="بحث مدعوم بالذكاء الاصطناعي">AI-Powered Research</h3>
+        <p class="feature-desc" data-en="Intelligent analysis across 500+ Saudi companies and securities." data-ar="تحليل ذكي عبر أكثر من 500 شركة سعودية وأوراق مالية.">Intelligent analysis across 500+ Saudi companies and securities.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title" data-en="Enterprise Security" data-ar="أمان المستوى الأول">Enterprise Security</h3>
+        <p class="feature-desc" data-en="ISO 27001 certified with 256-bit encryption and SOC 2 compliance." data-ar="معتمد ISO 27001 مع تشفير 256 بت والامتثال SOC 2.">ISO 27001 certified with 256-bit encryption and SOC 2 compliance.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">📈</div>
+        <h3 class="feature-title" data-en="Performance Tracking" data-ar="تتبع الأداء">Performance Tracking</h3>
+        <p class="feature-desc" data-en="Monitor returns and benchmark against regional indices." data-ar="مراقبة العائدات والمقارنة مع المؤشرات الإقليمية.">Monitor returns and benchmark against regional indices.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">💬</div>
+        <h3 class="feature-title" data-en="Expert Guidance" data-ar="إرشادات الخبراء">Expert Guidance</h3>
+        <p class="feature-desc" data-en="24/7 analyst support in Arabic and English." data-ar="دعم المحللين 24/7 باللغة العربية والإنجليزية.">24/7 analyst support in Arabic and English.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🌍</div>
+        <h3 class="feature-title" data-en="Global Insights" data-ar="رؤى عالمية">Global Insights</h3>
+        <p class="feature-desc" data-en="International market trends impacting the Kingdom." data-ar="اتجاهات السوق الدولية التي تؤثر على المملكة.">International market trends impacting the Kingdom.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Bar -->
+<section class="stats-section">
+  <div class="stats-container">
+    <div class="stat-item">
+      <div class="stat-number" data-counter="500">500+</div>
+      <div class="stat-label" data-en="Companies Tracked" data-ar="الشركات المتتبعة">Companies Tracked</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-counter="50000">50K+</div>
+      <div class="stat-label" data-en="Active Investors" data-ar="المستثمرون النشطون">Active Investors</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-counter="99.9">99.9%</div>
+      <div class="stat-label" data-en="Uptime SLA" data-ar="اتفاقية SLA">Uptime SLA</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-counter="24">24/7</div>
+      <div class="stat-label" data-en="Support Available" data-ar="الدعم المتاح">Support Available</div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo Section -->
+<section class="demo-section">
+  <div class="section-content">
+    <div class="demo-container">
+      <div class="demo-content">
+        <h3 data-en="Interactive Portfolio Dashboard" data-ar="لوحة معلومات المحفظة التفاعلية">Interactive Portfolio Dashboard</h3>
+        <p data-en="Experience real-time portfolio visualization with actionable insights." data-ar="اختبر تصور المحفظة في الوقت الفعلي مع رؤى قابلة للتنفيذ.">Experience real-time portfolio visualization with actionable insights.</p>
+        <ul class="demo-list">
+          <li data-en="Real-time price updates" data-ar="تحديثات الأسعار المباشرة">Real-time price updates</li>
+          <li data-en="Sector allocation charts" data-ar="رسوم بيانية لتوزيع القطاع">Sector allocation charts</li>
+          <li data-en="Risk assessment tools" data-ar="أدوات تقييم المخاطر">Risk assessment tools</li>
+          <li data-en="Performance benchmarking" data-ar="قياس الأداء">Performance benchmarking</li>
+        </ul>
+      </div>
+      <div>
+        <canvas id="demoChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CMA Badge Section -->
+<section class="badge-section" id="about">
+  <h2 class="badge-title" data-en="Trusted by Regulators & Investors" data-ar="موثوق من قبل الجهات المنظمة والمستثمرين">Trusted by Regulators &amp; Investors</h2>
+  <div class="badge-container">
+    <div class="badge-item reveal">
+      <div class="badge-icon">✅</div>
+      <div class="badge-text" data-en="CMA Authorized" data-ar="المرخصة من هيئة التخصصات الصحية">CMA Authorized</div>
+    </div>
+    <div class="badge-item reveal">
+      <div class="badge-icon">🔐</div>
+      <div class="badge-text" data-en="ISO 27001 Certified" data-ar="معتمد ISO 27001">ISO 27001 Certified</div>
+    </div>
+    <div class="badge-item reveal">
+      <div class="badge-icon">🏆</div>
+      <div class="badge-text" data-en="SOC 2 Compliant" data-ar="متوافق SOC 2">SOC 2 Compliant</div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="cta-section">
+  <h2 class="cta-title" data-en="Ready to Transform Your Investments?" data-ar="هل أنت مستعد لتحويل استثماراتك؟">Ready to Transform Your Investments?</h2>
+  <p class="cta-subtitle" data-en="Join thousands of investors using TAM Capital's research platform." data-ar="انضم إلى آلاف المستثمرين الذين يستخدمون منصة بحث رأس مال TAM.">Join thousands of investors using TAM Capital's research platform.</p>
+  <button id="finalCta" data-en="Get Started Free" data-ar="ابدأ مجانا">Get Started Free</button>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p class="footer-text">
+    <span data-en="© 2025 TAM Capital. All rights reserved." data-ar="© 2025 رأس مال TAM. جميع الحقوق محفوظة.">© 2025 TAM Capital. All rights reserved.</span>
+  </p>
+  <div class="footer-links">
+    <a href="#" data-en="Privacy Policy" data-ar="سياسة الخصوصية">Privacy Policy</a>
+    <a href="#" data-en="Terms of Service" data-ar="شروط الخدمة">Terms of Service</a>
+    <a href="#" data-en="Contact Us" data-ar="اتصل بنا">Contact Us</a>
+  </div>
+</footer>
+
+<script>
+// ===== LANGUAGE TOGGLE =====
+let currentLang='en';
+function toggleLang(){{
+  currentLang=currentLang==='en'?'ar':'en';
+  document.querySelectorAll('[data-en][data-ar]').forEach(el=>{{
+    el.textContent=currentLang==='en'?el.getAttribute('data-en'):el.getAttribute('data-ar');
+  }});
+  document.documentElement.dir=currentLang==='ar'?'rtl':'ltr';
+  document.documentElement.lang=currentLang;
+}}
+
+// ===== NAVBAR SCROLL =====
+window.addEventListener('scroll',()=>{{
+  const nav=document.getElementById('navbar');
+  nav.classList.toggle('scrolled',window.scrollY>50);
+}});
+
+// ===== PARTICLE CONSTELLATION =====
+const canvas=document.getElementById('particleCanvas');
+const ctx=canvas.getContext('2d');
+let particles=[];
+let mouseX=window.innerWidth/2;
+let mouseY=window.innerHeight/2;
+
+function resizeCanvas(){{
+  const hero=document.querySelector('.hero');
+  canvas.width=hero.clientWidth;
+  canvas.height=hero.clientHeight;
+}}
+
+class Particle{{
+  constructor(){{
+    this.x=Math.random()*canvas.width;
+    this.y=Math.random()*canvas.height;
+    this.vx=(Math.random()-0.5)*0.5;
+    this.vy=(Math.random()-0.5)*0.5;
+    this.radius=Math.random()*1.5+0.5;
+    this.color='rgba(108,185,182,'+(Math.random()*0.5+0.3)+')';
+  }}
+  update(){{
+    this.x+=this.vx;
+    this.y+=this.vy;
+    const dx=mouseX-this.x;
+    const dy=mouseY-this.y;
+    const distance=Math.sqrt(dx*dx+dy*dy);
+    if(distance<150){{
+      this.x-=(dx/distance)*1.5;
+      this.y-=(dy/distance)*1.5;
+    }}
+    if(this.x<0||this.x>canvas.width)this.vx*=-1;
+    if(this.y<0||this.y>canvas.height)this.vy*=-1;
+  }}
+  draw(){{
+    ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+    ctx.fillStyle=this.color;ctx.fill();
+  }}
+}}
+
+function initParticles(){{
+  particles=[];
+  for(let i=0;i<40;i++)particles.push(new Particle());
+}}
+
+function drawConnections(){{
+  for(let i=0;i<particles.length;i++){{
+    for(let j=i+1;j<particles.length;j++){{
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const distance=Math.sqrt(dx*dx+dy*dy);
+      if(distance<120){{
+        ctx.strokeStyle='rgba(108,185,182,'+(0.2*(1-distance/120))+')';
+        ctx.lineWidth=1;ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);ctx.stroke();
+      }}
+    }}
+  }}
+}}
+
+function animate(){{
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{{p.update();p.draw();}});
+  drawConnections();
+  requestAnimationFrame(animate);
+}}
+
+canvas.addEventListener('mousemove',e=>{{
+  const rect=canvas.getBoundingClientRect();
+  mouseX=e.clientX-rect.left;
+  mouseY=e.clientY-rect.top;
+}});
+
+resizeCanvas();
+initParticles();
+animate();
+window.addEventListener('resize',()=>{{resizeCanvas();initParticles();}});
+
+// ===== FEATURE CARD MOUSE GLOW =====
+document.querySelectorAll('.feature-card').forEach(card=>{{
+  card.addEventListener('mousemove',e=>{{
+    const rect=card.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    card.style.setProperty('--mouse-x',x+'px');
+    card.style.setProperty('--mouse-y',y+'px');
+  }});
+}});
+
+// ===== SCROLL REVEAL =====
+const observer=new IntersectionObserver(entries=>{{
+  entries.forEach(entry=>{{
+    if(entry.isIntersecting)entry.target.classList.add('active');
+  }});
+}},{{threshold:0.1}});
+
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// ===== COUNTER ANIMATION =====
+document.querySelectorAll('[data-counter]').forEach(el=>{{
+  const target=parseInt(el.getAttribute('data-counter'));
+  const start=0;
+  const duration=2000;
+  const startTime=Date.now();
+  function count(){{
+    const elapsed=Date.now()-startTime;
+    const progress=Math.min(elapsed/duration,1);
+    const current=Math.floor(start+(target-start)*progress);
+    el.textContent=current+el.textContent.replace(/[0-9]/g,'');
+    if(progress<1)requestAnimationFrame(count);
+  }}
+  const revealObs=new IntersectionObserver(entries=>{{
+    if(entries[0].isIntersecting){{count();revealObs.disconnect();}}
+  }},{{threshold:0.5}});
+  revealObs.observe(el);
+}});
+
+// ===== DEMO CHART ANIMATION =====
+function drawDemoChart(){{
+  const demoCanvas=document.getElementById('demoChart');
+  if(!demoCanvas)return;
+  const demoCtx=demoCanvas.getContext('2d');
+  const rect=demoCanvas.getBoundingClientRect();
+  demoCanvas.width=demoCanvas.offsetWidth;
+  demoCanvas.height=demoCanvas.offsetHeight;
+
+  const data=[25,40,35,50,65,58,72,85,78,92];
+  const padding=30;
+  const graphWidth=demoCanvas.width-2*padding;
+  const graphHeight=demoCanvas.height-2*padding;
+  const maxValue=Math.max(...data);
+  const stepX=graphWidth/(data.length-1);
+
+  // Grid
+  demoCtx.strokeStyle='rgba(108,185,182,0.1)';
+  demoCtx.lineWidth=1;
+  for(let i=0;i<=5;i++){{
+    const y=padding+i*(graphHeight/5);
+    demoCtx.beginPath();demoCtx.moveTo(padding,y);
+    demoCtx.lineTo(demoCanvas.width-padding,y);demoCtx.stroke();
+  }}
+
+  // Line
+  demoCtx.strokeStyle='#6CB9B6';
+  demoCtx.lineWidth=2;
+  demoCtx.beginPath();
+  data.forEach((val,i)=>{{
+    const x=padding+i*stepX;
+    const y=demoCanvas.height-padding-(val/maxValue)*graphHeight;
+    i===0?demoCtx.moveTo(x,y):demoCtx.lineTo(x,y);
+  }});
+  demoCtx.stroke();
+
+  // Points
+  demoCtx.fillStyle='#1A6DB6';
+  data.forEach((val,i)=>{{
+    const x=padding+i*stepX;
+    const y=demoCanvas.height-padding-(val/maxValue)*graphHeight;
+    demoCtx.beginPath();demoCtx.arc(x,y,4,0,Math.PI*2);demoCtx.fill();
+  }});
+}}
+
+drawDemoChart();
+window.addEventListener('resize',drawDemoChart);
+
+// ===== CTA BUTTON MESSAGING =====
+document.getElementById('finalCta').addEventListener('click',()=>{{
+  window.parent.postMessage({{type:'streamlit:setComponentValue',value:true}},'*');
+}});
+document.getElementById('navEnterBtn').addEventListener('click',()=>{{
+  window.parent.postMessage({{type:'streamlit:setComponentValue',value:true}},'*');
+}});
+</script>
+</body>
+</html>'''
+
+    # Render as iframe component for full control
+    import urllib.parse
+    encoded = urllib.parse.quote(html)
+    st.components.v1.html(html, height=4200, scrolling=True)
+
+    # Also add the Streamlit button as fallback (above the fold doesn't work with iframe messaging)
     st.markdown("")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button(
-            "Launch Research Terminal  \u2192",
-            key="enter_terminal_btn",
+            "🚀 Enter TAM Terminal",
+            key="fallback_button",
             use_container_width=True,
             type="primary",
         ):
-            st.session_state.show_landing = False
-            st.rerun()
+            st.switch_page("pages/terminal.py")
