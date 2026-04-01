@@ -690,7 +690,7 @@ def detect_sector_request(message: str) -> str | None:
     return None
 
 
-def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> tuple:
+def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tuple:
     """Try a model with retries. Returns (text, model_used, input_tokens, output_tokens)."""
     import time
     import random
@@ -706,9 +706,9 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 3) -> tup
             return response.content[0].text, model, in_tok, out_tok
         except anthropic.RateLimitError:
             if attempt < retries - 1:
-                base_wait = min(15 * (2 ** attempt), 60)
-                wait = base_wait + random.uniform(0, 5)
-                st.toast(f"Rate limited on {model} — retrying in {int(wait)}s...")
+                base_wait = min(20 * (2 ** attempt), 90)
+                wait = base_wait + random.uniform(1, 8)
+                st.toast(f"API busy — waiting {int(wait)}s before retry ({attempt+1}/{retries-1})...")
                 time.sleep(wait)
             else:
                 raise
@@ -2529,8 +2529,16 @@ def _handle_user_prompt(prompt: str):
                     "files": results.get("files", {})
                 })
 
+            except anthropic.RateLimitError:
+                error_msg = "The AI API is temporarily busy. Please wait 30 seconds and try again."
+                st.warning(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
             except Exception as e:
-                error_msg = f"Error during analysis: {str(e)}"
+                err_str = str(e)
+                if "rate" in err_str.lower() or "429" in err_str or "Too Many" in err_str:
+                    error_msg = "The AI API is temporarily busy. Please wait 30 seconds and try again."
+                else:
+                    error_msg = f"Error during analysis: {err_str}"
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
