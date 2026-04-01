@@ -226,48 +226,48 @@ def get_logo_base64():
 LOGO_B64 = get_logo_base64()
 
 # ==========================================================
-# DESIGN SYSTEM — Stripe Dashboard Theme (must match CSS vars)
+# DESIGN SYSTEM — Light Theme (must match CSS vars)
 # ==========================================================
 
 # Backgrounds
-C_BG = "#0B0F19"
-C_SURFACE = "#111827"
-C_CARD = "#151C2C"
-C_CARD_HOVER = "#1C2540"
-C_INPUT = "#0D1220"
+C_BG = "#FFFFFF"
+C_SURFACE = "#F8FAFC"
+C_CARD = "#FFFFFF"
+C_CARD_HOVER = "#F8FAFC"
+C_INPUT = "#F1F5F9"
 
 # TAM Brand Palette
 C_DEEP = "#222F62"
 C_ACCENT = "#1A6DB6"
 C_TURQUOISE = "#6CB9B6"
-C_ACCENT2 = "#6CB9B6"        # alias
-C_CYAN = "#6CB9B6"            # alias (used in alerts)
-C_GREEN = "#22C55E"
-C_RED = "#EF4444"
-C_ORANGE = "#F59E0B"
+C_ACCENT2 = "#6CB9B6"
+C_CYAN = "#6CB9B6"
+C_GREEN = "#16A34A"
+C_RED = "#DC2626"
+C_ORANGE = "#D97706"
 
 # Borders
-C_BORDER = "rgba(255,255,255,0.08)"
-C_BORDER_HOVER = "rgba(255,255,255,0.14)"
+C_BORDER = "#E2E8F0"
+C_BORDER_HOVER = "#CBD5E1"
 
-# Text — HIGH CONTRAST
-C_TEXT = "#F1F5F9"
-C_TEXT2 = "#94A3B8"
-C_MUTED = "#64748B"
-C_DIM = "#475569"
+# Text — dark on light
+C_TEXT = "#0F172A"
+C_TEXT2 = "#475569"
+C_MUTED = "#94A3B8"
+C_DIM = "#CBD5E1"
 
 # Gradients
 ACCENT_GRADIENT = "linear-gradient(135deg, #1A6DB6 0%, #6CB9B6 100%)"
-ACCENT_TEXT_GRADIENT = "linear-gradient(135deg, #5B9BD5 0%, #6CB9B6 60%, #8DD8D0 100%)"
+ACCENT_TEXT_GRADIENT = "linear-gradient(135deg, #1A6DB6 0%, #6CB9B6 100%)"
 
 
 def _card_style(padding="20px", height=None, extra=""):
-    """Reusable solid dark card inline style."""
+    """Reusable white card inline style."""
     h = f"height:{height};" if height else ""
     return (
         f"background:{C_CARD};border:1px solid {C_BORDER};border-radius:12px;"
-        f"padding:{padding};{h}transition:border-color 0.2s ease;"
-        f"position:relative;overflow:hidden;{extra}"
+        f"padding:{padding};{h}box-shadow:0 1px 2px rgba(0,0,0,0.04);"
+        f"transition:all 0.2s ease;position:relative;overflow:hidden;{extra}"
     )
 
 # Keep old name as alias for backward compat
@@ -370,7 +370,7 @@ elif not _is_authed:
             st.markdown(
                 f'<div style="text-align:center;padding:30px 0 10px 0;">'
                 f'<img src="data:image/png;base64,{LOGO_B64}" width="160"'
-                f' style="filter:brightness(0) invert(1);opacity:0.85;" />'
+                f' style="opacity:0.85;" />'
                 f'</div>',
                 unsafe_allow_html=True
             )
@@ -390,7 +390,7 @@ if _show_full_sidebar:
         st.markdown(
             f'<div style="text-align:center;padding:16px 0 4px 0;">'
             f'<img src="data:image/png;base64,{LOGO_B64}" width="140"'
-            f' style="filter:brightness(0) invert(1);opacity:0.9;" />'
+            f' style="opacity:0.9;" />'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -1532,7 +1532,7 @@ def _render_branded_header(title, subtitle=None, badge=None):
     if LOGO_B64:
         logo_html = (
             f'<img src="data:image/png;base64,{LOGO_B64}" height="32"'
-            f' style="filter:brightness(0) invert(1);opacity:0.9;" />'
+            f' style="opacity:0.9;" />'
         )
     badge_html = ""
     if badge:

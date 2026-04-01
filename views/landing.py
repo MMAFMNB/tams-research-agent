@@ -9,17 +9,17 @@ import base64
 import os
 
 
-# TAM Brand colors — Stripe Dashboard theme
+# TAM Brand colors — Light theme
 C_DEEP = "#222F62"
 C_ACCENT = "#1A6DB6"
 C_TURQUOISE = "#6CB9B6"
-C_GREEN = "#22C55E"
-C_BG = "#0B0F19"
-C_CARD = "#151C2C"
-C_TEXT = "#F1F5F9"
-C_TEXT2 = "#94A3B8"
-C_MUTED = "#64748B"
-C_BORDER = "rgba(255,255,255,0.08)"
+C_GREEN = "#16A34A"
+C_BG = "#F8FAFC"
+C_CARD = "#FFFFFF"
+C_TEXT = "#0F172A"
+C_TEXT2 = "#475569"
+C_MUTED = "#94A3B8"
+C_BORDER = "#E2E8F0"
 
 
 def _get_logo_b64():
@@ -35,7 +35,7 @@ def render_landing_page():
 
     logo_b64 = _get_logo_b64()
 
-    # Full-width dark styling — Stripe-inspired
+    # Full-width light styling
     st.markdown(f"""<style>
         #MainMenu, header[data-testid="stHeader"], footer,
         .stDeployButton, div[data-testid="stToolbar"] {{display:none!important;}}
@@ -52,24 +52,25 @@ def render_landing_page():
             font-weight: 600 !important;
             border-radius: 8px !important;
             transition: all 0.2s ease !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
         }}
         .stButton > button[kind="primary"]:hover {{
             transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(26,109,182,0.35) !important;
+            box-shadow: 0 4px 12px rgba(26,109,182,0.25) !important;
         }}
         .stButton > button[kind="secondary"] {{
-            background: transparent !important;
+            background: {C_CARD} !important;
             border: 1px solid {C_BORDER} !important;
-            color: {C_TEXT2} !important;
+            color: {C_TEXT} !important;
             padding: 0.6rem 2rem !important;
             font-size: 0.95rem !important;
             font-weight: 500 !important;
             border-radius: 8px !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
         }}
         .stButton > button[kind="secondary"]:hover {{
-            background: rgba(255,255,255,0.04) !important;
-            color: {C_TEXT} !important;
+            background: {C_BG} !important;
+            border-color: #CBD5E1 !important;
         }}
         div[data-testid="stVerticalBlock"] > div {{
             gap: 0.3rem;
@@ -82,7 +83,7 @@ def render_landing_page():
         if logo_b64:
             st.markdown(
                 f'<img src="data:image/png;base64,{logo_b64}" height="44" '
-                f'style="filter:brightness(0) invert(1);opacity:0.9;margin-top:8px;" />',
+                f'style="opacity:0.9;margin-top:8px;" />',
                 unsafe_allow_html=True
             )
         else:
@@ -161,7 +162,8 @@ def render_landing_page():
                 with col:
                     st.markdown(f"""
                     <div style="background:{C_CARD}; border:1px solid {C_BORDER}; border-radius:12px;
-                                padding:1.5rem; min-height:180px; transition:border-color 0.2s ease;">
+                                padding:1.5rem; min-height:180px; box-shadow:0 1px 3px rgba(0,0,0,0.06);
+                                transition:all 0.2s ease;">
                         <div style="font-size:2rem; margin-bottom:0.6rem;">{icon}</div>
                         <h4 style="color:{C_TEXT}; font-size:1rem; font-weight:600; margin-bottom:0.4rem;">{title}</h4>
                         <p style="color:{C_TEXT2}; font-size:0.85rem; line-height:1.5;">{desc}</p>
@@ -173,7 +175,8 @@ def render_landing_page():
     # ===== BOTTOM CTA SECTION =====
     st.markdown(f"""
     <div style="text-align:center; background: {C_CARD};
-                border-radius:12px; padding:3rem 2rem; border:1px solid {C_BORDER};">
+                border-radius:12px; padding:3rem 2rem; border:1px solid {C_BORDER};
+                box-shadow:0 1px 3px rgba(0,0,0,0.06);">
         <h2 style="color:{C_TEXT}; font-size:1.8rem; font-weight:700; margin-bottom:0.5rem;">
             Ready to Transform Your Research?
         </h2>
