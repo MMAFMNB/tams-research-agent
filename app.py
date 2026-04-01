@@ -757,7 +757,10 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tup
             in_tok = getattr(response.usage, 'input_tokens', 0) if hasattr(response, 'usage') else 0
             out_tok = getattr(response.usage, 'output_tokens', 0) if hasattr(response, 'usage') else 0
             return response.content[0].text, model, in_tok, out_tok
-        except anthropic.RateLimitError:
+        except anthropic.RateLimitError as e:
+            print(f"[RETRY] RateLimitError on {model} attempt {attempt+1}/{retries}: {e}")
+            if hasattr(e, 'response'):
+                print(f"[RETRY] Response headers: {dict(getattr(e.response, 'headers', {}))}")
             if attempt < retries - 1:
                 base_wait = min(20 * (2 ** attempt), 90)
                 wait = base_wait + random.uniform(1, 8)
@@ -766,6 +769,7 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tup
             else:
                 raise
         except anthropic.APIStatusError as e:
+            print(f"[RETRY] APIStatusError on {model} attempt {attempt+1}/{retries}: HTTP {e.status_code} — {e}")
             if e.status_code in (500, 502, 503, 529) and attempt < retries - 1:
                 time.sleep(10 * (attempt + 1))
             else:
@@ -776,11 +780,18 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tup
 def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
     """Call Claude API with fallback and token tracking."""
     client = anthropic.Anthropic(api_key=api_key)
+    prompt_len = len(prompt)
+    print(f"[CALL_CLAUDE] action={action}, model={MODEL}, prompt_chars={prompt_len}")
     try:
         text, model_used, in_tok, out_tok = _call_with_retries(client, MODEL, prompt)
-    except anthropic.RateLimitError:
-        st.toast("Switching to faster model to avoid rate limits...")
-        text, model_used, in_tok, out_tok = _call_with_retries(client, FALLBACK_MODEL, prompt)
+        print(f"[CALL_CLAUDE] Success: model={model_used}, in={in_tok}, out={out_tok}")
+    except (anthropic.RateLimitError, Exception) as e:
+        print(f"[CALL_CLAUDE] Primary model failed: {type(e).__name__}: {e}")
+        if isinstance(e, anthropic.RateLimitError):
+            st.toast("Switching to faster model to avoid rate limits...")
+            text, model_used, in_tok, out_tok = _call_with_retries(client, FALLBACK_MODEL, prompt)
+        else:
+            raise
 
     # Track token usage
     if TOKEN_TRACKER_AVAILABLE:
@@ -2585,16 +2596,18 @@ def _handle_user_prompt(prompt: str):
                     "files": results.get("files", {})
                 })
 
-            except anthropic.RateLimitError:
-                error_msg = "The AI API is temporarily busy. Please wait 30 seconds and try again."
-                st.warning(error_msg)
+            except anthropic.RateLimitError as e:
+                import traceback
+                print(f"[RATE_LIMIT] {type(e).__name__}: {e}")
+                traceback.print_exc()
+                error_msg = _classify_api_error(e)
+                st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
             except Exception as e:
-                err_str = str(e)
-                if "rate" in err_str.lower() or "429" in err_str or "Too Many" in err_str:
-                    error_msg = "The AI API is temporarily busy. Please wait 30 seconds and try again."
-                else:
-                    error_msg = f"Error during analysis: {err_str}"
+                import traceback
+                print(f"[ANALYSIS_ERROR] {type(e).__name__}: {e}")
+                traceback.print_exc()
+                error_msg = _classify_api_error(e)
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
