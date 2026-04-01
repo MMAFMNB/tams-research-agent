@@ -15,6 +15,7 @@ def _get_secret(key, default=""):
         return os.getenv(key, default)
 
 ANTHROPIC_API_KEY = _get_secret("ANTHROPIC_API_KEY")
+TWELVE_DATA_API_KEY = _get_secret("TWELVE_DATA_API_KEY")
 MODEL = "claude-sonnet-4-20250514"
 FALLBACK_MODEL = "claude-haiku-3-5-20241022"
 

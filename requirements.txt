@@ -1,6 +1,7 @@
 streamlit>=1.30
 anthropic>=0.40
 yfinance>=0.2.30
+twelvedata>=1.2.0
 python-docx>=1.1
 python-pptx>=0.6.23
 matplotlib>=3.8
