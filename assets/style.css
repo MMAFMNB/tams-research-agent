@@ -466,6 +466,15 @@ h4 {
     color: white !important;
 }
 
+/* Bottom chat container — force transparent on light theme */
+[data-testid="stBottomBlockContainer"],
+.stChatFloatingInputContainer {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+[data-testid="stBottomBlockContainer"] > div {
+    background: transparent !important;
+}
 
 /* ==========================================================
    TABS — Segmented Control

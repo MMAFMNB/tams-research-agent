@@ -214,6 +214,59 @@ except Exception:
     api_key = ANTHROPIC_API_KEY
 
 
+def _validate_api_key():
+    """Validate API key at startup — runs once per session."""
+    if st.session_state.get("_api_key_validated"):
+        return st.session_state.get("_api_key_status", "unknown")
+    if not api_key or api_key == "your_api_key_here":
+        st.session_state._api_key_validated = True
+        st.session_state._api_key_status = "missing"
+        return "missing"
+    try:
+        test_client = anthropic.Anthropic(api_key=api_key)
+        test_client.messages.create(
+            model=MODEL,
+            max_tokens=5,
+            messages=[{"role": "user", "content": "hi"}],
+        )
+        st.session_state._api_key_validated = True
+        st.session_state._api_key_status = "valid"
+        return "valid"
+    except anthropic.AuthenticationError:
+        st.session_state._api_key_validated = True
+        st.session_state._api_key_status = "invalid"
+        return "invalid"
+    except anthropic.RateLimitError:
+        # Key works but we're rate limited — still valid
+        st.session_state._api_key_validated = True
+        st.session_state._api_key_status = "valid_rate_limited"
+        return "valid_rate_limited"
+    except Exception as e:
+        st.session_state._api_key_validated = True
+        st.session_state._api_key_status = f"error:{e}"
+        return f"error:{e}"
+
+
+def _classify_api_error(e: Exception) -> str:
+    """Return a user-friendly error message for API errors."""
+    err_str = str(e).lower()
+    if isinstance(e, anthropic.AuthenticationError):
+        return (
+            "**API Key Invalid** — The Anthropic API key is not recognized. "
+            "Please verify the key in Streamlit Cloud secrets matches your "
+            "Anthropic dashboard key."
+        )
+    if isinstance(e, anthropic.RateLimitError) or "rate" in err_str or "429" in err_str or "too many" in err_str:
+        return (
+            f"**API Rate Limited** — Model: `{MODEL}`. "
+            "This can happen if the API key is invalid/expired or if you've "
+            "exceeded your tier limits. Check your key on the Anthropic dashboard."
+        )
+    if isinstance(e, anthropic.APIStatusError):
+        return f"**API Server Error** (HTTP {getattr(e, 'status_code', '?')}): {str(e)[:200]}"
+    return f"**Error during analysis**: {str(e)[:300]}"
+
+
 # --- Logo helper ---
 def get_logo_base64():
     """Get TAMS logo as base64 for HTML embedding."""
@@ -717,7 +770,7 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tup
                 time.sleep(10 * (attempt + 1))
             else:
                 raise
-    raise anthropic.RateLimitError("Retries exhausted")
+    raise Exception("Rate limit retries exhausted. The API is busy — please try again in a few minutes.")
 
 
 def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
@@ -1561,16 +1614,17 @@ def _render_market_overview_empty_state():
         unsafe_allow_html=True
     )
 
-    # Quick action chips
+    # Quick action chips — native st.button() so they're clickable
     quick_actions = [
         "Analyze SABIC", "TASI market outlook", "Banking sector review",
         "Al Rajhi vs SNB", "Top dividend stocks", "Aramco earnings"
     ]
-    chips_html = '<div style="text-align:center;margin-bottom:1.5rem;">'
-    for action in quick_actions:
-        chips_html += f'<span class="quick-chip">{action}</span>'
-    chips_html += '</div>'
-    st.markdown(chips_html, unsafe_allow_html=True)
+    chip_cols = st.columns(len(quick_actions))
+    for idx, (col, action) in enumerate(zip(chip_cols, quick_actions)):
+        with col:
+            if st.button(action, key=f"chip_{idx}", type="secondary", use_container_width=True):
+                st.session_state.quick_prompt = action
+                st.rerun()
 
     # Market overview cards
     st.markdown(_section_label("Market Snapshot"), unsafe_allow_html=True)
@@ -1896,7 +1950,7 @@ def render_sectors():
                     </div>""",
                     unsafe_allow_html=True
                 )
-                if st.button(f"Analyze {key.title()}", key=f"sec_btn_{key}", use_container_width=True):
+                if st.button(f"Analyze {key.title()}", key=f"sec_btn_{key}", type="primary", use_container_width=True):
                     st.session_state["sector_prompt"] = f"sector overview {key}"
                     st.rerun()
 
@@ -1938,7 +1992,7 @@ def render_comparison():
         key="cmp_page_input"
     )
 
-    if st.button("Run Comparison", key="cmp_page_btn", use_container_width=False):
+    if st.button("Run Comparison", key="cmp_page_btn", type="primary", use_container_width=False):
         if compare_input:
             # Force comparison detection
             query = compare_input if "compare" in compare_input.lower() else f"Compare {compare_input}"
@@ -1984,7 +2038,7 @@ def render_comparison():
     qcols = st.columns(len(quick_cmps))
     for col, (label, query) in zip(qcols, quick_cmps):
         with col:
-            if st.button(f"{label} Comparison", key=f"qcmp_{label}", use_container_width=True):
+            if st.button(f"{label} Comparison", key=f"qcmp_{label}", type="primary", use_container_width=True):
                 st.session_state["cmp_page_auto"] = query
                 st.rerun()
 
@@ -2298,7 +2352,7 @@ def _handle_user_prompt(prompt: str):
                     "content": f"{result['name']} analysis complete.\n\n{analysis[:500]}"
                 })
             except Exception as e:
-                error_msg = f"Sector analysis error: {str(e)}"
+                error_msg = _classify_api_error(e)
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
         return
@@ -2336,7 +2390,7 @@ def _handle_user_prompt(prompt: str):
                     "files": results.get("files", {})
                 })
             except Exception as e:
-                error_msg = f"Comparison error: {str(e)}"
+                error_msg = _classify_api_error(e)
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
         return
@@ -2357,7 +2411,9 @@ def _handle_user_prompt(prompt: str):
                     st.markdown(response)
                     st.session_state.messages.append({"role": "assistant", "content": response})
                 except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    msg = _classify_api_error(e)
+                    st.error(msg)
+                    st.session_state.messages.append({"role": "assistant", "content": msg})
     else:
         # --- Pre-analysis preferences check ---
         if st.session_state.show_preferences:
@@ -2601,6 +2657,18 @@ if LANDING_AVAILABLE and st.session_state.get("show_landing", True):
 # elif AUTH_AVAILABLE and not is_authenticated():
 #     render_login_page()
 else:
+    # --- API Key Health Check (once per session) ---
+    key_status = _validate_api_key()
+    if key_status == "missing":
+        st.warning("**API key not configured.** Add `ANTHROPIC_API_KEY` to Streamlit secrets or `.env`.")
+    elif key_status == "invalid":
+        st.error(
+            "**API key is invalid.** The Anthropic API rejected this key. "
+            "Please verify it matches your key on the [Anthropic dashboard](https://console.anthropic.com/)."
+        )
+    elif key_status == "valid_rate_limited":
+        st.info("API key is valid but currently rate-limited. Queries may be slow.")
+
     if page == "dashboard":
         render_dashboard()
     elif page == "research":

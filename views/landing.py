@@ -87,7 +87,7 @@ def render_landing_page():
                 unsafe_allow_html=True
             )
         else:
-            st.markdown(f"<h3 style='color:white;margin:0;'>TAM CAPITAL</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color:{C_TEXT};margin:0;'>TAM CAPITAL</h3>", unsafe_allow_html=True)
     with nav_cols[1]:
         st.markdown(f"<p style='color:{C_TEXT2};text-align:center;padding-top:14px;font-size:0.9rem;'>Features</p>", unsafe_allow_html=True)
     with nav_cols[2]:
@@ -102,7 +102,7 @@ def render_landing_page():
     # ===== HERO SECTION =====
     st.markdown(f"""
     <div style="text-align:center; padding: 3rem 0 1rem 0;">
-        <h1 style="font-size:3.2rem; font-weight:800; color:white; line-height:1.15; margin-bottom:1rem;">
+        <h1 style="font-size:3.2rem; font-weight:800; color:{C_TEXT}; line-height:1.15; margin-bottom:1rem;">
             Invest Smarter.<br/>
             Research for <span style="color:{C_TURQUOISE}; font-style:italic; font-family:Georgia,serif;">Saudi Markets</span>
         </h1>
@@ -135,7 +135,7 @@ def render_landing_page():
     st.markdown(f"""
     <div style="text-align:center; margin-bottom:1.5rem;">
         <p style="color:{C_TURQUOISE}; font-size:0.8rem; font-weight:600; letter-spacing:3px; text-transform:uppercase; margin-bottom:0.3rem;">PLATFORM FEATURES</p>
-        <h2 style="color:white; font-size:2rem; font-weight:700;">Everything You Need</h2>
+        <h2 style="color:{C_TEXT}; font-size:2rem; font-weight:700;">Everything You Need</h2>
     </div>
     """, unsafe_allow_html=True)
 
@@ -195,7 +195,7 @@ def render_landing_page():
     # ===== FOOTER =====
     st.markdown(f"""
     <div style="text-align:center; padding:3rem 0 1rem 0; margin-top:2rem;
-                border-top:1px solid rgba(255,255,255,0.05);">
+                border-top:1px solid {C_BORDER};">
         <p style="color:{C_TEXT2}; font-size:0.8rem;">
             © 2026 TAM Capital. All rights reserved. | CMA Regulated
         </p>

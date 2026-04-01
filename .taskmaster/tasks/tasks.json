@@ -760,6 +760,98 @@
         ],
         "status": "done",
         "subtasks": []
+      },
+      {
+        "id": "35",
+        "title": "Fix Landing Page for Light Theme",
+        "description": "Fix all hardcoded color:white references in landing.py hero/headings so text is visible on light background",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Change color:white to C_TEXT (#0F172A) on hero heading (line 105), 'Everything You Need' (line 138), fallback TAM CAPITAL (line 90). Fix footer border from rgba(255,255,255,0.05) to C_BORDER.",
+        "testStrategy": "Load landing page on live site. All text must be readable on #F8FAFC background. No white-on-white text.",
+        "subtasks": []
+      },
+      {
+        "id": "36",
+        "title": "Diagnose and Fix API Rate Limit Error",
+        "description": "Fix the 'Too Many Requests' error that occurs immediately on first query even after hours of inactivity",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Add API key validation on startup. Better error classification: distinguish no key / invalid key / real rate limit / server error. Show model name in error for debugging. Verify API key loads correctly from Streamlit secrets.",
+        "testStrategy": "Submit a simple research query. Should either work or show a specific, helpful error message.",
+        "subtasks": []
+      },
+      {
+        "id": "37",
+        "title": "Make Quick Suggestion Chips Clickable",
+        "description": "Convert HTML-only suggestion chips on Research page to native st.button() that auto-submit as research queries",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Replace HTML span chips with st.button() calls. On click, set st.session_state.quick_prompt to chip text and rerun. Style as pill buttons matching .quick-chip CSS.",
+        "testStrategy": "Click each chip. Should immediately submit that text as a research query.",
+        "subtasks": []
+      },
+      {
+        "id": "38",
+        "title": "Fix Sector Analyze Buttons Styling",
+        "description": "Fix washed-out sector 'Analyze' buttons to use TAM gradient and ensure they are functional",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "Ensure sector buttons use type='primary' for gradient styling. Verify each triggers correct analysis. Remove any non-functional buttons.",
+        "testStrategy": "Click each sector Analyze button. Should trigger analysis or navigate. Button text must be readable.",
+        "subtasks": []
+      },
+      {
+        "id": "39",
+        "title": "Fix Compare Page Button Styling",
+        "description": "Fix 'Run Comparison' and quick comparison buttons that appear washed out on light theme",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "Ensure Run Comparison uses primary type. Fix quick comparison buttons to be visible with readable text on light background.",
+        "testStrategy": "All buttons on Compare page must have readable text and gradient/bordered styling.",
+        "subtasks": []
+      },
+      {
+        "id": "40",
+        "title": "Fix Chat Input Dark Background Strip",
+        "description": "Remove dark navy background strip behind chat input that clashes with light theme",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "Check CSS and inline styles for dark background on chat input container. Should blend with light page background.",
+        "testStrategy": "Chat input area should not have a visually jarring dark strip. Should blend with the page.",
+        "subtasks": []
+      },
+      {
+        "id": "41",
+        "title": "Global Button Audit \u2014 Remove Non-Clickable Buttons",
+        "description": "Audit every button across all pages. Remove or fix any non-functional/decorative buttons.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "37",
+          "38",
+          "39"
+        ],
+        "details": "Check all pages: landing, research, dashboard, sectors, compare, portfolio, watchlist, alerts. Every button must have a working click handler. Replace HTML fake buttons with native st.button(). All primary buttons get TAM gradient, secondary buttons get visible borders.",
+        "testStrategy": "Click every button on every page. Each must either do something or not exist.",
+        "subtasks": []
+      },
+      {
+        "id": "42",
+        "title": "Sidebar Footer Contrast Fix",
+        "description": "Verify sidebar footer text is readable on light background",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [],
+        "details": "Check 'TAM Capital | CMA Regulated' and 'Confidential - Internal Use Only' text colors against light sidebar.",
+        "testStrategy": "Footer text must be visible on the #FAFBFC sidebar background.",
+        "subtasks": []
       }
     ],
     "metadata": {
