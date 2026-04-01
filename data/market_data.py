@@ -14,8 +14,22 @@ from typing import Optional
 
 def fetch_stock_data(ticker: str, collector=None) -> dict:
     """Fetch comprehensive stock data for analysis."""
+    import time as _time
     stock = yf.Ticker(ticker)
-    info = stock.info or {}
+    # yfinance can raise YFRateLimitError — retry with backoff
+    info = {}
+    for _attempt in range(3):
+        try:
+            info = stock.info or {}
+            break
+        except Exception as _yf_err:
+            _err_str = str(_yf_err).lower()
+            if "rate" in _err_str or "too many" in _err_str or "429" in _err_str:
+                print(f"[YFINANCE] Rate limited on {ticker}, attempt {_attempt+1}/3, waiting...")
+                _time.sleep(5 * (_attempt + 1))
+            else:
+                print(f"[YFINANCE] Error fetching {ticker}: {_yf_err}")
+                break
 
     if collector:
         collector.add(
@@ -100,8 +114,21 @@ def fetch_stock_data(ticker: str, collector=None) -> dict:
 
 def fetch_price_history(ticker: str, period: str = "5y", collector=None) -> pd.DataFrame:
     """Fetch historical price data (default 5 years for comprehensive analysis)."""
+    import time as _time
     stock = yf.Ticker(ticker)
-    hist = stock.history(period=period)
+    hist = pd.DataFrame()
+    for _attempt in range(3):
+        try:
+            hist = stock.history(period=period)
+            break
+        except Exception as _yf_err:
+            _err_str = str(_yf_err).lower()
+            if "rate" in _err_str or "too many" in _err_str or "429" in _err_str:
+                print(f"[YFINANCE] Rate limited on {ticker} history, attempt {_attempt+1}/3")
+                _time.sleep(5 * (_attempt + 1))
+            else:
+                print(f"[YFINANCE] Error fetching {ticker} history: {_yf_err}")
+                break
     if collector:
         collector.add(
             source_type="yahoo_finance",
@@ -174,8 +201,21 @@ def fetch_financials(ticker: str, collector=None) -> dict:
 
 def fetch_dividend_history(ticker: str, collector=None) -> pd.DataFrame:
     """Fetch full dividend payment history."""
+    import time as _time
     stock = yf.Ticker(ticker)
-    dividends = stock.dividends
+    dividends = pd.Series(dtype=float)
+    for _attempt in range(3):
+        try:
+            dividends = stock.dividends
+            break
+        except Exception as _yf_err:
+            _err_str = str(_yf_err).lower()
+            if "rate" in _err_str or "too many" in _err_str or "429" in _err_str:
+                print(f"[YFINANCE] Rate limited on {ticker} dividends, attempt {_attempt+1}/3")
+                _time.sleep(5 * (_attempt + 1))
+            else:
+                print(f"[YFINANCE] Error fetching {ticker} dividends: {_yf_err}")
+                break
     if collector:
         collector.add(
             source_type="yahoo_finance",

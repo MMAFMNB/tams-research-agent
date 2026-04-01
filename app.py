@@ -250,20 +250,35 @@ def _validate_api_key():
 def _classify_api_error(e: Exception) -> str:
     """Return a user-friendly error message for API errors."""
     err_str = str(e).lower()
+    err_type = type(e).__name__
+
+    # yfinance / Yahoo Finance errors — NOT Anthropic
+    if "yfinance" in err_type.lower() or "yf" in err_type.lower() or "yahoo" in err_str:
+        return (
+            "**Market data temporarily unavailable** — Yahoo Finance is rate-limiting requests. "
+            "Please wait a minute and try again."
+        )
+
     if isinstance(e, anthropic.AuthenticationError):
         return (
             "**API Key Invalid** — The Anthropic API key is not recognized. "
             "Please verify the key in Streamlit Cloud secrets matches your "
             "Anthropic dashboard key."
         )
-    if isinstance(e, anthropic.RateLimitError) or "rate" in err_str or "429" in err_str or "too many" in err_str:
+    if isinstance(e, anthropic.RateLimitError):
         return (
-            f"**API Rate Limited** — Model: `{MODEL}`. "
-            "This can happen if the API key is invalid/expired or if you've "
-            "exceeded your tier limits. Check your key on the Anthropic dashboard."
+            f"**AI API Rate Limited** — Model: `{MODEL}`. "
+            "Please wait a minute and try again."
         )
     if isinstance(e, anthropic.APIStatusError):
         return f"**API Server Error** (HTTP {getattr(e, 'status_code', '?')}): {str(e)[:200]}"
+
+    # Generic rate-limit-like errors — only if clearly API-related
+    if ("rate" in err_str or "429" in err_str or "too many" in err_str):
+        if "anthropic" in err_str or "claude" in err_str:
+            return f"**AI API Rate Limited** — Model: `{MODEL}`. Please wait and try again."
+        return f"**Service rate limited**: {str(e)[:200]}. Please wait a minute and try again."
+
     return f"**Error during analysis**: {str(e)[:300]}"
 
 
@@ -848,7 +863,12 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
 
     with st.status("Collecting market intelligence...", expanded=True) as status:
         st.write("Fetching live market data...")
-        stock_data = fetch_stock_data(ticker, collector=collector)
+        try:
+            stock_data = fetch_stock_data(ticker, collector=collector)
+        except Exception as _data_err:
+            print(f"[DATA] fetch_stock_data failed: {type(_data_err).__name__}: {_data_err}")
+            st.warning(f"Market data temporarily unavailable — continuing with limited data.")
+            stock_data = {"ticker": ticker, "name": company_name}
         if stock_data.get("name") and stock_data["name"] != ticker:
             company_name = stock_data["name"]
 
@@ -860,7 +880,11 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             return results
 
         st.write("Loading price history...")
-        hist = fetch_price_history(ticker, collector=collector)
+        try:
+            hist = fetch_price_history(ticker, collector=collector)
+        except Exception as _data_err:
+            print(f"[DATA] fetch_price_history failed: {_data_err}")
+            hist = pd.DataFrame()
 
         st.write("Computing technical indicators...")
         technicals = calculate_technical_indicators(hist) if not hist.empty else {}
@@ -869,10 +893,19 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
         news = search_company_news(company_name, ticker, collector=collector)
 
         st.write("Pulling financial statements...")
-        financials = fetch_financials(ticker, collector=collector)
+        try:
+            financials = fetch_financials(ticker, collector=collector)
+        except Exception as _data_err:
+            print(f"[DATA] fetch_financials failed: {_data_err}")
+            financials = {}
 
         st.write("Retrieving dividend history...")
-        dividends = fetch_dividend_history(ticker, collector=collector)
+        try:
+            dividends = fetch_dividend_history(ticker, collector=collector)
+        except Exception as _data_err:
+            print(f"[DATA] fetch_dividend_history failed: {_data_err}")
+            import pandas as _pd
+            dividends = _pd.Series(dtype=float)
 
         market_data_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
         status.update(label=f"Market data collected ({len(collector)} sources)", state="complete")
