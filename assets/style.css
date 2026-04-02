@@ -468,12 +468,15 @@ h4 {
 
 /* Bottom chat container — force transparent on light theme */
 [data-testid="stBottomBlockContainer"],
-.stChatFloatingInputContainer {
+.stChatFloatingInputContainer,
+[data-testid="stBottom"] {
     background: transparent !important;
     background-color: transparent !important;
 }
-[data-testid="stBottomBlockContainer"] > div {
+[data-testid="stBottomBlockContainer"] > div,
+[data-testid="stBottom"] > div {
     background: transparent !important;
+    background-color: transparent !important;
 }
 
 /* ==========================================================

@@ -630,7 +630,7 @@ if _show_full_sidebar:
         f"""
         <div style="position:fixed;bottom:12px;left:12px;right:12px;max-width:260px;">
             <hr style="border-color:{C_BORDER};margin-bottom:6px;" />
-            <p style="font-size:0.55rem;color:{C_MUTED} !important;text-align:center;margin:0;
+            <p style="font-size:0.55rem;color:{C_TEXT2} !important;text-align:center;margin:0;
                       letter-spacing:0.02em;">
                 TAM Capital | CMA Regulated<br>
                 Confidential - Internal Use Only
