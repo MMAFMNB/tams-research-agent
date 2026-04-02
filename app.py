@@ -5,6 +5,7 @@ import sys
 import re
 import base64
 import importlib
+import traceback
 import streamlit as st
 from datetime import datetime
 
@@ -971,9 +972,21 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
                 st.warning(f"Skipped {config['title']} (rate limited)")
                 _t.sleep(15)
                 continue
+            except anthropic.APIError as api_err:
+                failed_sections.append(config['title'])
+                st.warning(f"{config['title']} failed (API error): {str(api_err)}")
+                print(f"[SECTION_API_ERROR] {config['title']}: {type(api_err).__name__}: {api_err}")
+                continue
+            except ValueError as val_err:
+                failed_sections.append(config['title'])
+                st.warning(f"{config['title']} failed (invalid value): {str(val_err)}")
+                print(f"[SECTION_VALUE_ERROR] {config['title']}: {val_err}")
+                continue
             except Exception as e:
                 failed_sections.append(config['title'])
-                st.warning(f"{config['title']} failed: {str(e)}")
+                st.warning(f"{config['title']} failed: {type(e).__name__}: {str(e)}")
+                print(f"[SECTION_UNKNOWN_ERROR] {config['title']}: {type(e).__name__}")
+                print(traceback.format_exc())
                 continue
 
         if _is_cancelled():
@@ -1002,8 +1015,19 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
                         results["sections"]["key_takeaways"] = "Key Takeaways" + parts[1] if len(parts) > 1 else ""
                     else:
                         results["sections"]["executive_summary"] = exec_summary
+                except anthropic.APIError as api_err:
+                    st.warning(f"Executive summary failed (API error): {str(api_err)}")
+                    print(f"[EXEC_SUMMARY_API_ERROR] {type(api_err).__name__}: {api_err}")
+                except anthropic.RateLimitError as rate_err:
+                    st.warning(f"Executive summary skipped (rate limited)")
+                    print(f"[EXEC_SUMMARY_RATE_LIMIT] {rate_err}")
+                except (ValueError, TypeError) as val_err:
+                    st.warning(f"Executive summary error (invalid data): {str(val_err)}")
+                    print(f"[EXEC_SUMMARY_VALUE_ERROR] {type(val_err).__name__}: {val_err}")
                 except Exception as e:
-                    st.warning(f"Executive summary error: {str(e)}")
+                    st.warning(f"Executive summary error: {type(e).__name__}: {str(e)}")
+                    print(f"[EXEC_SUMMARY_UNKNOWN_ERROR] {type(e).__name__}")
+                    print(traceback.format_exc())
 
             status.update(label="Analysis complete", state="complete")
 
@@ -1134,8 +1158,20 @@ def run_comparison_analysis(stocks: list, user_message: str, formats: list) -> d
         try:
             analysis = call_claude(comparison_prompt)
             comparison["analysis"] = analysis
+        except anthropic.RateLimitError as rate_err:
+            comparison["analysis"] = f"Comparison analysis skipped (rate limited). Please try again in a few moments."
+            st.warning(f"Rate limited on comparison analysis")
+            print(f"[COMPARISON_RATE_LIMIT] {rate_err}")
+        except anthropic.APIError as api_err:
+            comparison["analysis"] = f"Comparison analysis error (API): {str(api_err)}"
+            print(f"[COMPARISON_API_ERROR] {type(api_err).__name__}: {api_err}")
+        except ValueError as val_err:
+            comparison["analysis"] = f"Comparison analysis error (invalid data): {str(val_err)}"
+            print(f"[COMPARISON_VALUE_ERROR] {val_err}")
         except Exception as e:
-            comparison["analysis"] = f"Comparison analysis error: {str(e)}"
+            comparison["analysis"] = f"Comparison analysis error: {type(e).__name__}: {str(e)}"
+            print(f"[COMPARISON_UNKNOWN_ERROR] {type(e).__name__}")
+            print(traceback.format_exc())
         status.update(label="Comparative analysis complete", state="complete")
 
     with st.status("Building comparison charts...", expanded=False) as status:
@@ -1200,8 +1236,16 @@ def run_sector_analysis(sector_key: str, user_message: str) -> dict:
                 result["stocks"][ticker] = {
                     "name": stock_data.get("name", name), "data": stock_data,
                 }
+            except KeyError as key_err:
+                st.write(f"  Skipped {name}: missing data field ({key_err})")
+                print(f"[SECTOR_KEY_ERROR] {ticker}: {key_err}")
+            except (ValueError, TypeError) as val_err:
+                st.write(f"  Skipped {name}: invalid data format ({type(val_err).__name__})")
+                print(f"[SECTOR_VALUE_ERROR] {ticker}: {type(val_err).__name__}: {val_err}")
             except Exception as e:
-                st.write(f"  Skipped {name}: {str(e)}")
+                st.write(f"  Skipped {name}: {type(e).__name__}: {str(e)}")
+                print(f"[SECTOR_UNKNOWN_ERROR] {ticker}: {type(e).__name__}")
+                print(traceback.format_exc())
 
         st.write("Searching sector news...")
         sector_news = search_sector_news(sector["name"], collector=collector)
@@ -1879,8 +1923,19 @@ def render_portfolio():
                     st.markdown("---")
                     st.markdown("#### Portfolio Commentary")
                     st.markdown(commentary[:2000])
+                except anthropic.RateLimitError as rate_err:
+                    st.warning(f"Portfolio commentary skipped (rate limited). Please try again shortly.")
+                    print(f"[PORTFOLIO_RATE_LIMIT] {rate_err}")
+                except anthropic.APIError as api_err:
+                    st.warning(f"Portfolio commentary failed (API error): {str(api_err)}")
+                    print(f"[PORTFOLIO_API_ERROR] {type(api_err).__name__}: {api_err}")
+                except ValueError as val_err:
+                    st.warning(f"Portfolio commentary error (invalid data): {str(val_err)}")
+                    print(f"[PORTFOLIO_VALUE_ERROR] {val_err}")
                 except Exception as e:
-                    st.warning(f"Commentary error: {str(e)}")
+                    st.warning(f"Commentary error: {type(e).__name__}: {str(e)}")
+                    print(f"[PORTFOLIO_UNKNOWN_ERROR] {type(e).__name__}")
+                    print(traceback.format_exc())
 
     # --- Risk Analytics ---
     if RISK_AVAILABLE and positions and len(positions) >= 1:

@@ -11,11 +11,32 @@ Data source priority:
 
 import os
 import time
+import random
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional
+
+
+# --- Backoff Helper ---
+def _exponential_backoff_with_jitter(attempt: int, base: float = 2.0, max_backoff: float = 16.0) -> float:
+    """Calculate exponential backoff with jitter (prevents thundering herd).
+
+    Args:
+        attempt: Retry attempt number (0-indexed)
+        base: Base for exponential calculation (default 2.0 for 2s, 4s, 8s, 16s)
+        max_backoff: Maximum backoff time in seconds (default 16.0)
+
+    Returns:
+        Sleep duration in seconds with random jitter
+    """
+    # Calculate base backoff: 2^attempt seconds, capped at max_backoff
+    backoff = min(base ** attempt, max_backoff)
+    # Add random jitter: uniform random between 0 and the calculated backoff
+    jittered = backoff * random.random()
+    return jittered
+
 
 # --- Twelve Data Setup ---
 _TD_KEY = None
@@ -113,7 +134,7 @@ def _td_fetch_time_series(ticker: str, period: str = "5y") -> pd.DataFrame:
 
 
 def _td_fetch_statistics(ticker: str) -> dict:
-    """Fetch key statistics/fundamentals from Twelve Data."""
+    """Fetch key statistics/fundamentals from Twelve Data with exponential backoff on rate limits."""
     td = _get_td_client()
     if not td:
         return {}
@@ -122,12 +143,32 @@ def _td_fetch_statistics(ticker: str) -> dict:
         symbol = _td_ticker(ticker)
         exchange = "&exchange=TADAWUL" if _is_saudi(ticker) else ""
         url = f"https://api.twelvedata.com/statistics?symbol={symbol}{exchange}&apikey={_TD_KEY}"
-        resp = requests.get(url, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            if "statistics" in data or "valuations_metrics" in data:
-                print(f"[TWELVE_DATA] Statistics OK for {symbol}")
-                return data
+
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, timeout=15)
+                if resp.status_code == 429:
+                    # Rate limited
+                    backoff_time = _exponential_backoff_with_jitter(attempt)
+                    print(f"[TWELVE_DATA] Rate limited on {symbol}, attempt {attempt+1}/3, "
+                          f"backing off {backoff_time:.2f}s...")
+                    time.sleep(backoff_time)
+                    continue
+                elif resp.status_code == 200:
+                    data = resp.json()
+                    if "statistics" in data or "valuations_metrics" in data:
+                        print(f"[TWELVE_DATA] Statistics OK for {symbol}")
+                        return data
+                    return {}
+                else:
+                    print(f"[TWELVE_DATA] Statistics error for {symbol}: HTTP {resp.status_code}")
+                    return {}
+            except requests.exceptions.Timeout:
+                print(f"[TWELVE_DATA] Timeout fetching statistics for {symbol}, attempt {attempt+1}/3")
+                if attempt < 2:
+                    backoff_time = _exponential_backoff_with_jitter(attempt)
+                    time.sleep(backoff_time)
+                continue
         return {}
     except Exception as e:
         print(f"[TWELVE_DATA] Statistics error for {ticker}: {e}")
@@ -139,7 +180,7 @@ def _td_fetch_statistics(ticker: str) -> dict:
 # ==========================================================
 
 def _yf_fetch_stock_data(ticker: str) -> dict:
-    """Fetch stock info from yfinance with retry logic."""
+    """Fetch stock info from yfinance with exponential backoff on rate limits."""
     stock = yf.Ticker(ticker)
     info = {}
     for attempt in range(3):
@@ -149,8 +190,10 @@ def _yf_fetch_stock_data(ticker: str) -> dict:
         except Exception as err:
             err_str = str(err).lower()
             if "rate" in err_str or "too many" in err_str or "429" in err_str:
-                print(f"[YFINANCE] Rate limited on {ticker}, attempt {attempt+1}/3, waiting...")
-                time.sleep(5 * (attempt + 1))
+                backoff_time = _exponential_backoff_with_jitter(attempt)
+                print(f"[YFINANCE] Rate limited on {ticker}, attempt {attempt+1}/3, "
+                      f"backing off {backoff_time:.2f}s...")
+                time.sleep(backoff_time)
             else:
                 print(f"[YFINANCE] Error fetching {ticker}: {err}")
                 break
@@ -158,7 +201,7 @@ def _yf_fetch_stock_data(ticker: str) -> dict:
 
 
 def _yf_fetch_history(ticker: str, period: str = "5y") -> pd.DataFrame:
-    """Fetch price history from yfinance with retry."""
+    """Fetch price history from yfinance with exponential backoff on rate limits."""
     stock = yf.Ticker(ticker)
     for attempt in range(3):
         try:
@@ -166,8 +209,10 @@ def _yf_fetch_history(ticker: str, period: str = "5y") -> pd.DataFrame:
         except Exception as err:
             err_str = str(err).lower()
             if "rate" in err_str or "too many" in err_str or "429" in err_str:
-                print(f"[YFINANCE] Rate limited on {ticker} history, attempt {attempt+1}/3")
-                time.sleep(5 * (attempt + 1))
+                backoff_time = _exponential_backoff_with_jitter(attempt)
+                print(f"[YFINANCE] Rate limited on {ticker} history, attempt {attempt+1}/3, "
+                      f"backing off {backoff_time:.2f}s...")
+                time.sleep(backoff_time)
             else:
                 print(f"[YFINANCE] Error fetching {ticker} history: {err}")
                 break
@@ -367,7 +412,7 @@ def fetch_financials(ticker: str, collector=None) -> dict:
 
 
 def fetch_dividend_history(ticker: str, collector=None) -> pd.DataFrame:
-    """Fetch full dividend payment history (yfinance)."""
+    """Fetch full dividend payment history (yfinance) with exponential backoff on rate limits."""
     stock = yf.Ticker(ticker)
     dividends = pd.Series(dtype=float)
     for attempt in range(3):
@@ -377,8 +422,10 @@ def fetch_dividend_history(ticker: str, collector=None) -> pd.DataFrame:
         except Exception as err:
             err_str = str(err).lower()
             if "rate" in err_str or "too many" in err_str or "429" in err_str:
-                print(f"[YFINANCE] Rate limited on {ticker} dividends, attempt {attempt+1}/3")
-                time.sleep(5 * (attempt + 1))
+                backoff_time = _exponential_backoff_with_jitter(attempt)
+                print(f"[YFINANCE] Rate limited on {ticker} dividends, attempt {attempt+1}/3, "
+                      f"backing off {backoff_time:.2f}s...")
+                time.sleep(backoff_time)
             else:
                 print(f"[YFINANCE] Error fetching {ticker} dividends: {err}")
                 break
