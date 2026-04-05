@@ -233,7 +233,28 @@ class AdvisorAgent(BaseAgent):
                 signals["bearish_factors"] += 1
                 signals["risks"].append("Negative community sentiment")
 
-        # Determine recommendation
+        # Try ML signal model first
+        try:
+            from data.ml.signal_model import predict_direction, record_signals
+            ml_prediction = predict_direction(signals, agent_data)
+            if ml_prediction.get("model_available"):
+                direction = ml_prediction["direction"]
+                ml_conf = ml_prediction["confidence"]
+                signals["ml_prediction"] = ml_prediction
+
+                # Blend ML prediction with rule-based signals
+                direction_map = {"UP": "BUY", "DOWN": "SELL", "FLAT": "HOLD"}
+                if ml_conf > 0.6:
+                    signals["recommendation"] = direction_map.get(direction, "HOLD")
+                    signals["confidence"] = ml_conf
+                    signals["recommendation_source"] = "ml_model"
+                    # Record signals for outcome tracking
+                    record_signals(sections.get("ticker", ""), signals, agent_data)
+                    return signals
+        except ImportError:
+            pass
+
+        # Fallback: rule-based recommendation
         bull = signals["bullish_factors"]
         bear = signals["bearish_factors"]
         net = bull - bear
@@ -253,6 +274,15 @@ class AdvisorAgent(BaseAgent):
         else:
             signals["recommendation"] = "HOLD"
             signals["confidence"] = 0.5
+
+        signals["recommendation_source"] = "rule_based"
+
+        # Record signals for outcome tracking (even with rule-based)
+        try:
+            from data.ml.signal_model import record_signals
+            record_signals(agent_data.get("ticker", ""), signals, agent_data)
+        except ImportError:
+            pass
 
         return signals
 

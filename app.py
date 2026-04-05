@@ -385,6 +385,21 @@ if "pending_prompt" not in st.session_state:
     st.session_state.pending_prompt = None
 if "show_landing" not in st.session_state:
     st.session_state.show_landing = True
+if "analyst_session_id" not in st.session_state:
+    import uuid as _uuid
+    st.session_state.analyst_session_id = str(_uuid.uuid4())[:12]
+
+
+def _get_user_id() -> str:
+    """Get a stable user identifier for memory and ML systems."""
+    if AUTH_AVAILABLE:
+        try:
+            user = get_current_user()
+            if user and user.get("id"):
+                return user["id"]
+        except Exception:
+            pass
+    return st.session_state.get("analyst_session_id", "default")
 
 # Check if user clicked "enter" from the landing page CTA (via URL query param)
 if st.query_params.get("enter") == "true":
@@ -958,6 +973,15 @@ def generate_section(section_type: str, market_data_str: str, news_str: str, tic
     except ImportError:
         pass
 
+    # ML: RAG — inject high-quality past analyses as reference
+    try:
+        from data.ml.rag_enhancer import get_rag_context
+        rag_ctx = get_rag_context(section_type, ticker, optimized_data[:500])
+        if rag_ctx:
+            prompt = prompt + rag_ctx
+    except ImportError:
+        pass
+
     result = call_claude(prompt, action=section_type, ticker=ticker)
 
     # ML: record this interaction for future learning
@@ -969,8 +993,16 @@ def generate_section(section_type: str, market_data_str: str, news_str: str, tic
             prompt_length=len(prompt),
             response_length=len(result) if result else 0,
             model_used=MODEL,
-            user_id=st.session_state.get("user", {}).get("id", "default"),
+            user_id=_get_user_id(),
         )
+    except Exception:
+        pass
+
+    # ML: store completed analysis for RAG retrieval
+    try:
+        from data.ml.rag_enhancer import store_completed_analysis
+        if result and len(result) > 100:
+            store_completed_analysis(ticker, section_type, result)
     except Exception:
         pass
 

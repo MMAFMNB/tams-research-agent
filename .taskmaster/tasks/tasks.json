@@ -1085,11 +1085,144 @@
         ],
         "status": "pending",
         "subtasks": []
+      },
+      {
+        "id": 61,
+        "title": "Set up ML infrastructure and directory structure",
+        "description": "Create the foundational ML directory structure and install required dependencies for machine learning features",
+        "details": "Create data/ml/ directory with subdirectories (embeddings/, models/). Add new dependencies to requirements.txt: scikit-learn>=1.4, sentence-transformers>=2.7, numpy>=1.24. Create __init__.py files and .gitkeep files for empty directories. Set up basic configuration for ML features with fallback mechanisms.",
+        "testStrategy": "Verify directory structure exists, dependencies install correctly, and import statements work for all ML modules",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 62,
+        "title": "Implement user session identification system",
+        "description": "Replace hardcoded authentication with lightweight session-based user identification using Streamlit session state",
+        "details": "Remove hardcoded `_is_authed = True` at line 429 of app.py. Implement session UUID generation using st.session_state on first visit. Store session ID persistently and use it as user_id for all memory/ML operations. Implement single-analyst mode where all sessions can optionally share the same learning corpus.",
+        "testStrategy": "Test that unique session IDs are generated and persist across page refreshes. Verify memory operations use correct session ID instead of 'default'",
+        "priority": "high",
+        "dependencies": [
+          61
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 63,
+        "title": "Build Arabic sentiment classification engine",
+        "description": "Implement sentiment classifier using Claude Haiku with structured output and local caching system",
+        "details": "Create data/ml/sentiment_classifier.py with classify_text() function that calls Claude Haiku API. Implement structured JSON output format: {sentiment: float, confidence: float, reasoning: str, topics: list}. Add batch processing for up to 20 comments per API call. Implement local caching in sentiment_cache.json using text hash as key. Include fallback to keyword-based system if API fails.",
+        "testStrategy": "Test sentiment classification on Arabic financial text samples. Verify caching works correctly and batch processing reduces API calls. Test fallback mechanism when API is unavailable",
+        "priority": "high",
+        "dependencies": [
+          61,
+          62
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 64,
+        "title": "Create sentiment training data collection system",
+        "description": "Build system to collect and store sentiment classification results as training data for future local model training",
+        "details": "Create data/ml/sentiment_training_data.py to store every Claude classification as labeled training data. Format: {text: str, sentiment: float, confidence: float, source: str, classified_at: str}. Implement export function for future fine-tuning of local models. Add data validation and deduplication logic.",
+        "testStrategy": "Verify training data is collected correctly after sentiment classifications. Test export functionality and data format validation",
+        "priority": "medium",
+        "dependencies": [
+          63
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 65,
+        "title": "Integrate sentiment classifier with SentimentAgent",
+        "description": "Replace keyword-based sentiment scoring in SentimentAgent with the new ML-based sentiment classifier",
+        "details": "Modify SentimentAgent._score_text() method to use classify_text() instead of keyword matching. Implement batch classification for Argaam forum comments and news titles. Add cost tracking and ensure cost stays under $0.01 per stock sentiment analysis. Maintain backward compatibility with existing sentiment scoring interface.",
+        "testStrategy": "Compare sentiment accuracy between old keyword system and new ML system on sample data. Verify cost tracking and batch processing work correctly",
+        "priority": "high",
+        "dependencies": [
+          63,
+          64
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 66,
+        "title": "Build embeddings storage and retrieval system",
+        "description": "Implement vector embeddings storage using sentence-transformers and cosine similarity search for analysis retrieval",
+        "details": "Create data/ml/embeddings_store.py with vector storage using sentence-transformers/all-MiniLM-L6-v2 model. Store embeddings in JSON format with metadata: {id, ticker, section_type, text, embedding, score, timestamp}. Implement data/ml/retrieval.py with find_similar(), find_by_ticker(), and find_high_quality() functions using cosine similarity. Use numpy arrays for efficient vector operations.",
+        "testStrategy": "Test embedding generation and storage. Verify similarity search returns relevant results. Test retrieval functions with different query types and validate performance under 100ms for 5000 vectors",
+        "priority": "medium",
+        "dependencies": [
+          61,
+          62
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 67,
+        "title": "Implement RAG enhancement for analysis generation",
+        "description": "Build retrieval-augmented generation system to inject similar high-quality past analyses into prompts",
+        "details": "Create data/ml/rag_enhancer.py to retrieve top 3 similar past analyses before generating new sections. Inject reference analyses into prompts with format: 'REFERENCE — Here are high-quality past analyses for similar stocks: [analysis examples]'. Implement automatic embedding and storage of analyses that score ≥ 3.0. Add integration points in generate_section() method.",
+        "testStrategy": "Test that relevant past analyses are retrieved and injected into prompts. Verify quality improvement in generated analyses. Test automatic embedding storage after high-scoring analyses",
+        "priority": "medium",
+        "dependencies": [
+          66
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 68,
+        "title": "Create prompt quality prediction model",
+        "description": "Build machine learning model to predict prompt quality scores based on prompt features and historical data",
+        "details": "Create data/ml/prompt_quality_model.py with GradientBoostingRegressor model. Extract features: section_type, prompt_length, market_data_completeness, news_count, has_sentiment_data, model_used, ticker_historical_avg_score, learned_rules_count, time_of_day. Implement predict_quality() function and automatic retraining every 100 new scored interactions. Require minimum 50 scored interactions before first training.",
+        "testStrategy": "Test feature extraction from prompts. Verify model training with sufficient data. Test prediction accuracy correlation > 0.6 with actual scores after 200+ training samples",
+        "priority": "medium",
+        "dependencies": [
+          61,
+          62
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 69,
+        "title": "Build ML-enhanced prompt optimization system",
+        "description": "Integrate prompt quality prediction with existing prompt optimization to select best prompt variations",
+        "details": "Create data/ml/prompt_optimizer_ml.py to predict quality for multiple prompt variations before generation. Test variations: full vs truncated data, with/without learned rules, Haiku vs Sonnet. Select highest predicted quality within budget. Integrate with generate_section() to automatically add context or switch models if predicted quality < 3.0. Log predictions vs actual scores for model improvement.",
+        "testStrategy": "Test prompt variation generation and quality prediction. Verify automatic model/context switching based on predictions. Validate improvement in average quality scores",
+        "priority": "medium",
+        "dependencies": [
+          68
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 70,
+        "title": "Implement investment signal learning model",
+        "description": "Build classification model to learn which fundamental/technical/sentiment signals predict stock returns",
+        "details": "Create data/ml/signal_model.py with RandomForestClassifier for 3 classes: UP (>5%), FLAT (-5% to +5%), DOWN (<-5%). Extract ~20 normalized features: PE, PB, EPS growth, dividend yield, RSI, MACD, price vs MA, sentiment scores. Create data/ml/outcome_tracker.py for retroactive price collection 30 days after analysis. Implement predict_direction() with confidence scores and top factors. Require 100+ samples before training, blend with rules initially.",
+        "testStrategy": "Test feature extraction and normalization. Verify outcome tracking collects correct price data. Test model training and prediction accuracy > 55% directional accuracy",
+        "priority": "low",
+        "dependencies": [
+          61,
+          62
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2026-04-05T14:43:45.996Z",
-      "updated": "2026-04-05T14:43:45.996Z",
+      "updated": "2026-04-05T16:42:51.288Z",
       "description": "Tasks for master context"
     }
   }

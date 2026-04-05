@@ -225,23 +225,34 @@ class SentimentAgent(BaseAgent):
 
     def _score_text(self, text: str) -> float:
         """
-        Score text sentiment using keyword matching.
-
-        Returns -1.0 (bearish) to 1.0 (bullish).
-        For more accurate analysis, Claude Haiku is used in batch mode.
+        Score text sentiment. Uses ML classifier if available, falls back to keywords.
         """
-        text_lower = text.lower()
+        # Try ML classifier first
+        try:
+            from data.ml.sentiment_classifier import classify_text
+            result = classify_text(text)
+            if result and result.get("confidence", 0) > 0.3:
+                return result["sentiment"]
+        except (ImportError, Exception):
+            pass
 
+        # Fallback: keyword matching
+        text_lower = text.lower()
         bullish_count = sum(1 for kw in BULLISH_KEYWORDS if kw in text_lower)
         bearish_count = sum(1 for kw in BEARISH_KEYWORDS if kw in text_lower)
-
         total = bullish_count + bearish_count
         if total == 0:
             return 0.0
+        return round((bullish_count - bearish_count) / total, 3)
 
-        # Score from -1 to 1
-        score = (bullish_count - bearish_count) / total
-        return round(score, 3)
+    def _score_batch(self, texts: List[str]) -> List[float]:
+        """Batch-score multiple texts using ML classifier (cost efficient)."""
+        try:
+            from data.ml.sentiment_classifier import classify_batch
+            results = classify_batch(texts)
+            return [r.get("sentiment", 0.0) for r in results]
+        except (ImportError, Exception):
+            return [self._score_text(t) for t in texts]
 
     def _analyze_comments(self, comments: List[Dict]) -> Dict:
         """Analyze a batch of comments and return summary stats."""
