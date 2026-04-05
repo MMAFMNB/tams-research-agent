@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Bash(task-master *)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "Bash(streamlit run *)",
+      "Bash(pytest *)",
+      "Bash(mkdir *)"
+    ]
+  }
+}

@@ -626,6 +626,46 @@ if _show_full_sidebar:
         label_visibility="collapsed"
     )
 
+    # --- Agent Status Panel ---
+    _last_statuses = st.session_state.get("_agent_statuses")
+    if _last_statuses:
+        st.markdown(
+            f'<div style="font-size:0.65rem;color:{C_TEXT2};padding:4px 0 2px 0;">'
+            f'<span style="color:{C_TURQUOISE};">Agents</span></div>',
+            unsafe_allow_html=True
+        )
+        for _aname, _astatus in _last_statuses.items():
+            _s = _astatus.get("status", "idle")
+            _icon = {"complete": "OK", "cached": "CACHE", "failed": "FAIL",
+                     "running": "...", "idle": "-", "not_implemented": "N/A"}.get(_s, _s)
+            _color = {"complete": "#22C55E", "cached": C_TURQUOISE, "failed": "#EF4444"}.get(_s, C_TEXT2)
+            st.markdown(
+                f'<span style="font-size:0.6rem;color:{_color};">[{_icon}]</span> '
+                f'<span style="font-size:0.6rem;color:{C_TEXT2};">{_aname}</span>',
+                unsafe_allow_html=True
+            )
+        st.markdown(f'<div style="height:6px;"></div>', unsafe_allow_html=True)
+
+    # --- API Budget Indicator ---
+    try:
+        from data.cost.budget_manager import BudgetManager
+        _budget = BudgetManager()
+        _binfo = _budget.get_budget_display()
+        _budget_color = (
+            "#EF4444" if _binfo["status"] == "critical"
+            else "#F59E0B" if _binfo["status"] == "warning"
+            else C_TURQUOISE
+        )
+        st.markdown(
+            f'<div style="font-size:0.65rem;color:{C_TEXT2};padding:8px 0 4px 0;">'
+            f'<span style="color:{_budget_color};">API Budget</span> '
+            f'${_binfo["spent"]:.2f} / ${_binfo["monthly_budget"]:.0f} '
+            f'({_binfo["pct_used"]:.0f}%)</div>',
+            unsafe_allow_html=True
+        )
+    except Exception:
+        pass
+
     # Footer
     st.markdown(
         f"""
@@ -794,12 +834,65 @@ def _call_with_retries(client, model: str, prompt: str, retries: int = 4) -> tup
 
 
 def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
-    """Call Claude API with fallback and token tracking."""
+    """Call Claude API with intelligent model routing, caching, budget checks, and token tracking."""
+    # --- Cost optimization: check cache first ---
+    try:
+        from data.cost.prompt_optimizer import get_or_generate, make_cache_key
+        cache_key = make_cache_key(ticker, action) if ticker else ""
+        if cache_key:
+            from data.cost.prompt_optimizer import _read_cache, _is_expired
+            cached = _read_cache(cache_key)
+            if cached and not _is_expired(cached, ttl_hours=12):
+                print(f"[CALL_CLAUDE] Cache HIT: {cache_key}")
+                if TOKEN_TRACKER_AVAILABLE:
+                    try:
+                        user = st.session_state.get("user", {})
+                        track_tokens(user_id=user.get("id", "anonymous"), model="cache",
+                                     action=action, ticker=ticker, cached=True)
+                    except Exception:
+                        pass
+                return cached["content"]
+    except ImportError:
+        cache_key = ""
+
+    # --- Cost optimization: budget check ---
+    try:
+        from data.cost.budget_manager import BudgetManager
+        budget = BudgetManager()
+        can_go, msg = budget.can_proceed(action)
+        if not can_go:
+            st.warning(f"Budget limit: {msg}")
+            return f"Analysis paused: {msg}"
+        if msg != "OK":
+            print(f"[BUDGET] {msg}")
+    except ImportError:
+        budget = None
+
+    # --- Cost optimization: intelligent model routing ---
+    try:
+        from data.cost.model_router import select_model
+        remaining = budget.get_remaining_budget() if budget else 999.0
+        selected_model = select_model(action, len(prompt), remaining)
+    except ImportError:
+        selected_model = MODEL
+
+    # --- Memory: inject user context into prompt ---
+    try:
+        from data.memory.preference_tracker import get_user_context, get_ticker_context
+        user_id = st.session_state.get("user", {}).get("id", "default")
+        user_ctx = get_user_context(user_id)
+        ticker_ctx = get_ticker_context(ticker, user_id) if ticker else ""
+        memory_preamble = "\n".join(filter(None, [user_ctx, ticker_ctx]))
+        if memory_preamble:
+            prompt = f"{memory_preamble}\n\n{prompt}"
+    except ImportError:
+        pass
+
     client = anthropic.Anthropic(api_key=api_key)
     prompt_len = len(prompt)
-    print(f"[CALL_CLAUDE] action={action}, model={MODEL}, prompt_chars={prompt_len}")
+    print(f"[CALL_CLAUDE] action={action}, model={selected_model}, prompt_chars={prompt_len}")
     try:
-        text, model_used, in_tok, out_tok = _call_with_retries(client, MODEL, prompt)
+        text, model_used, in_tok, out_tok = _call_with_retries(client, selected_model, prompt)
         print(f"[CALL_CLAUDE] Success: model={model_used}, in={in_tok}, out={out_tok}")
     except (anthropic.RateLimitError, Exception) as e:
         print(f"[CALL_CLAUDE] Primary model failed: {type(e).__name__}: {e}")
@@ -808,6 +901,14 @@ def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
             text, model_used, in_tok, out_tok = _call_with_retries(client, FALLBACK_MODEL, prompt)
         else:
             raise
+
+    # --- Cache the result ---
+    if cache_key and text:
+        try:
+            from data.cost.prompt_optimizer import _write_cache
+            _write_cache(cache_key, text)
+        except Exception:
+            pass
 
     # Track token usage
     if TOKEN_TRACKER_AVAILABLE:
@@ -821,6 +922,7 @@ def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
                 output_tokens=out_tok,
                 action=action,
                 ticker=ticker,
+                cached=False,
             )
         except Exception:
             pass
@@ -829,14 +931,50 @@ def call_claude(prompt: str, action: str = "research", ticker: str = "") -> str:
 
 
 def generate_section(section_type: str, market_data_str: str, news_str: str, ticker: str = "") -> str:
-    """Generate a single analysis section."""
+    """Generate a single analysis section with prompt optimization and ML learning."""
     config = SECTION_CONFIG.get(section_type)
     if not config:
         return ""
+
+    # Optimize prompt: truncate to only relevant data sections
+    try:
+        from data.cost.prompt_optimizer import truncate_market_data, deduplicate_news
+        optimized_data = truncate_market_data(market_data_str, section_type)
+        optimized_news = deduplicate_news(news_str)
+    except ImportError:
+        optimized_data = market_data_str
+        optimized_news = news_str
+
     module = importlib.import_module(config["prompt_module"])
     prompt_template = getattr(module, config["prompt_var"])
-    prompt = prompt_template.format(market_data=market_data_str, news_data=news_str)
-    return call_claude(prompt, action=section_type, ticker=ticker)
+    prompt = prompt_template.format(market_data=optimized_data, news_data=optimized_news)
+
+    # ML: append learned rules from analyst feedback
+    try:
+        from data.memory.prompt_learner import get_learned_additions
+        learned = get_learned_additions(section_type, ticker)
+        if learned:
+            prompt = prompt + learned
+    except ImportError:
+        pass
+
+    result = call_claude(prompt, action=section_type, ticker=ticker)
+
+    # ML: record this interaction for future learning
+    try:
+        from data.memory.prompt_learner import record_interaction
+        record_interaction(
+            section_type=section_type,
+            ticker=ticker,
+            prompt_length=len(prompt),
+            response_length=len(result) if result else 0,
+            model_used=MODEL,
+            user_id=st.session_state.get("user", {}).get("id", "default"),
+        )
+    except Exception:
+        pass
+
+    return result
 
 
 # ==========================================================
@@ -863,13 +1001,46 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             st.session_state.analysis_running = False
 
     with st.status("Collecting market intelligence...", expanded=True) as status:
+        # --- Try agent orchestrator first, fall back to legacy pipeline ---
+        _agent_data = None
+        try:
+            from data.agents.orchestrator import AgentOrchestrator
+            st.write("Running multi-agent data collection...")
+            _orchestrator = AgentOrchestrator()
+            _agent_data = _orchestrator.run_all_sync(ticker)
+            _agent_statuses = _orchestrator.get_all_statuses()
+
+            # Show agent status
+            _used = _agent_data.get("agents_used", [])
+            _failed = _agent_data.get("agents_failed", [])
+            if _used:
+                st.write(f"Agents: {', '.join(_used)} OK" + (f" | {', '.join(_failed)} failed" if _failed else ""))
+
+            # Store agent data and sentiment for later use
+            results["agent_data"] = _agent_data
+            results["agent_statuses"] = _agent_statuses
+            st.session_state["_agent_statuses"] = _agent_statuses
+        except Exception as _orch_err:
+            print(f"[ORCHESTRATOR] Failed, using legacy pipeline: {_orch_err}")
+            _agent_data = None
+
         st.write("Fetching live market data...")
         try:
             stock_data = fetch_stock_data(ticker, collector=collector)
+            # Merge agent data into stock_data if available
+            if _agent_data:
+                for k, v in _agent_data.items():
+                    if k not in stock_data or stock_data[k] is None:
+                        if k not in ("metadata", "agents_used", "agents_failed", "news_items", "sentiment", "source"):
+                            stock_data[k] = v
         except Exception as _data_err:
             print(f"[DATA] fetch_stock_data failed: {type(_data_err).__name__}: {_data_err}")
-            st.warning(f"Market data temporarily unavailable — continuing with limited data.")
-            stock_data = {"ticker": ticker, "name": company_name}
+            if _agent_data and _agent_data.get("close"):
+                st.info("Using agent data as primary source.")
+                stock_data = _agent_data
+            else:
+                st.warning(f"Market data temporarily unavailable — continuing with limited data.")
+                stock_data = {"ticker": ticker, "name": company_name}
         if stock_data.get("name") and stock_data["name"] != ticker:
             company_name = stock_data["name"]
 
@@ -891,7 +1062,18 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
         technicals = calculate_technical_indicators(hist) if not hist.empty else {}
 
         st.write("Scanning recent news & events...")
-        news = search_company_news(company_name, ticker, collector=collector)
+        # Use agent news if available, fall back to legacy
+        if _agent_data and _agent_data.get("news_items"):
+            news_items = _agent_data["news_items"]
+            news = "\n".join(
+                f"- {n.get('title', '')} ({n.get('source', '')}, {n.get('published_at', '')})"
+                for n in news_items[:10]
+                if isinstance(n, dict)
+            )
+            if not news:
+                news = search_company_news(company_name, ticker, collector=collector)
+        else:
+            news = search_company_news(company_name, ticker, collector=collector)
 
         st.write("Pulling financial statements...")
         try:
@@ -909,7 +1091,23 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
             dividends = _pd.Series(dtype=float)
 
         market_data_str = format_market_data_for_prompt(stock_data, technicals, hist, financials)
-        status.update(label=f"Market data collected ({len(collector)} sources)", state="complete")
+
+        # Append sentiment data to market_data_str if available from agents
+        if _agent_data and _agent_data.get("sentiment") and isinstance(_agent_data["sentiment"], dict):
+            _sent = _agent_data["sentiment"]
+            if _sent.get("volume_mentions", 0) > 0:
+                market_data_str += (
+                    f"\n\n--- COMMUNITY SENTIMENT ---\n"
+                    f"Overall: {_sent.get('overall_sentiment', 'N/A')}\n"
+                    f"Bullish: {_sent.get('bullish_pct', 0)}% | Bearish: {_sent.get('bearish_pct', 0)}%\n"
+                    f"Mentions: {_sent.get('volume_mentions', 0)}\n"
+                    f"Top Themes: {', '.join(_sent.get('top_themes', []))}\n"
+                )
+
+        _src_count = len(collector)
+        if _agent_data:
+            _src_count += len(_agent_data.get("agents_used", []))
+        status.update(label=f"Market data collected ({_src_count} sources)", state="complete")
 
     if _is_cancelled():
         cancel_col.empty()
@@ -1034,6 +1232,15 @@ def run_full_analysis(ticker: str, company_name: str, user_message: str, formats
     # --- Clean up cancel button ---
     cancel_col.empty()
     st.session_state.analysis_running = False
+
+    # --- Memory: observe this analysis request ---
+    try:
+        from data.memory.preference_tracker import observe_analysis_request
+        user_id = st.session_state.get("user", {}).get("id", "default")
+        completed_sections = list(results.get("sections", {}).keys())
+        observe_analysis_request(user_id, ticker, completed_sections, formats)
+    except Exception:
+        pass
 
     # --- Skip file generation if cancelled with no content ---
     if results.get("cancelled") and not results["sections"]:
@@ -2571,6 +2778,36 @@ def _handle_user_prompt(prompt: str):
                         if os.path.exists(path):
                             with chart_cols[i % 2]:
                                 st.image(path, caption=name.replace("_", " ").title())
+
+                # --- Community Sentiment ---
+                _agent_sent = (results.get("agent_data") or {}).get("sentiment")
+                if _agent_sent and isinstance(_agent_sent, dict) and _agent_sent.get("volume_mentions", 0) > 0:
+                    with st.expander("Community Sentiment", expanded=False):
+                        _s_cols = st.columns(4)
+                        with _s_cols[0]:
+                            _score = _agent_sent.get("overall_sentiment", 0)
+                            _label = "Bullish" if _score > 0.2 else "Bearish" if _score < -0.2 else "Neutral"
+                            st.metric("Sentiment", _label, f"{_score:+.2f}")
+                        with _s_cols[1]:
+                            st.metric("Mentions", _agent_sent.get("volume_mentions", 0))
+                        with _s_cols[2]:
+                            st.metric("Bullish", f"{_agent_sent.get('bullish_pct', 0)}%")
+                        with _s_cols[3]:
+                            st.metric("Bearish", f"{_agent_sent.get('bearish_pct', 0)}%")
+
+                        _themes = _agent_sent.get("top_themes", [])
+                        if _themes:
+                            st.markdown(f"**Top themes:** {', '.join(_themes)}")
+
+                        _samples = _agent_sent.get("sample_comments", [])
+                        if _samples:
+                            st.markdown("**Sample comments:**")
+                            for _sc in _samples[:3]:
+                                st.caption(f"_{_sc[:150]}_")
+
+                        _quality = _agent_sent.get("data_quality", "")
+                        if _quality == "limited":
+                            st.caption("Limited data — sentiment based on keyword analysis")
 
                 # --- DCF Valuation ---
                 _display_dcf_section(results.get("stock_data", {}), ticker)

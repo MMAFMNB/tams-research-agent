@@ -420,7 +420,7 @@
         "id": "9",
         "title": "Create Report History and Change Summary UI",
         "description": "Build frontend components for viewing report version history, comparing versions, and displaying change summaries",
-        "details": "Implement React/Next.js UI components:\n1. Report History Timeline component\n2. Version Comparison View with side-by-side layout\n3. Change Summary Dashboard\n4. Version selector dropdown\n5. Diff visualization with highlighting\n\nTypeScript/React implementation:\n```typescript\n// components/ReportHistory.tsx\nimport { useState, useEffect } from 'react';\nimport { Timeline, TimelineItem } from '@/components/ui/timeline';\nimport { formatDistanceToNow } from 'date-fns';\nimport { ar, enUS } from 'date-fns/locale';\n\ninterface ReportVersion {\n  id: number;\n  version_number: number;\n  created_at: string;\n  created_by: { name: string; avatar?: string };\n  change_summary: string;\n  metrics_summary: {\n    revenue_change: number;\n    earnings_change: number;\n    rating_change?: string;\n  };\n}\n\nexport function ReportHistory({ ticker }: { ticker: string }) {\n  const [versions, setVersions] = useState<ReportVersion[]>([]);\n  const [selectedVersions, setSelectedVersions] = useState<[number?, number?]>([]);\n  const { locale } = useLocale();\n  \n  useEffect(() => {\n    fetchReportVersions(ticker).then(setVersions);\n  }, [ticker]);\n  \n  const handleCompare = () => {\n    if (selectedVersions[0] && selectedVersions[1]) {\n      router.push(`/reports/compare?v1=${selectedVersions[0]}&v2=${selectedVersions[1]}`);\n    }\n  };\n  \n  return (\n    <div className=\"space-y-6\">\n      <div className=\"flex justify-between items-center\">\n        <h2 className=\"text-2xl font-bold\">\n          {locale === 'ar' ? '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631' : 'Report History'}\n        </h2>\n        <button\n          onClick={handleCompare}\n          disabled={selectedVersions.filter(Boolean).length !== 2}\n          className=\"btn-primary\"\n        >\n          {locale === 'ar' ? '\u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0646\u0633\u062e' : 'Compare Versions'}\n        </button>\n      </div>\n      \n      <Timeline>\n        {versions.map((version) => (\n          <TimelineItem\n            key={version.id}\n            active={selectedVersions.includes(version.id)}\n            onClick={() => toggleVersionSelection(version.id)}\n          >\n            <div className=\"flex items-start justify-between\">\n              <div>\n                <h3 className=\"font-semibold\">\n                  {locale === 'ar' ? `\u0627\u0644\u0646\u0633\u062e\u0629 ${version.version_number}` : `Version ${version.version_number}`}\n                </h3>\n                <p className=\"text-sm text-gray-600\">\n                  {formatDistanceToNow(new Date(version.created_at), {\n                    addSuffix: true,\n                    locale: locale === 'ar' ? ar : enUS\n                  })}\n                </p>\n                <p className=\"text-sm mt-1\">{version.change_summary}</p>\n              </div>\n              <MetricChangeBadges metrics={version.metrics_summary} />\n            </div>\n          </TimelineItem>\n        ))}\n      </Timeline>\n    </div>\n  );\n}\n\n// components/VersionComparison.tsx\nexport function VersionComparison({ v1Id, v2Id }: { v1Id: number; v2Id: number }) {\n  const [comparison, setComparison] = useState<ComparisonData>();\n  const [activeSection, setActiveSection] = useState('metrics');\n  \n  useEffect(() => {\n    fetchComparison(v1Id, v2Id).then(setComparison);\n  }, [v1Id, v2Id]);\n  \n  return (\n    <div className=\"grid grid-cols-2 gap-6\">\n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v1.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v1.metrics} \n          highlights={comparison?.changes.decreased}\n          highlightColor=\"red\"\n        />\n      </div>\n      \n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v2.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v2.metrics}\n          highlights={comparison?.changes.increased} \n          highlightColor=\"green\"\n        />\n      </div>\n      \n      <div className=\"col-span-2\">\n        <ChangeSummaryPanel changes={comparison?.changes} />\n      </div>\n    </div>\n  );\n}\n\n// components/ChangeSummaryPanel.tsx\nexport function ChangeSummaryPanel({ changes }: { changes: ChangeData }) {\n  const { locale } = useLocale();\n  \n  return (\n    <div className=\"bg-gray-50 rounded-lg p-6\">\n      <h3 className=\"text-lg font-semibold mb-4\">\n        {locale === 'ar' ? '\u0645\u0644\u062e\u0635 \u0627\u0644\u062a\u063a\u064a\u064a\u0631\u0627\u062a' : 'Change Summary'}\n      </h3>\n      \n      <div className=\"grid grid-cols-3 gap-4\">\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u062d\u0633\u064a\u0646\u0627\u062a' : 'Improvements'}\n          items={changes.improvements}\n          icon={<TrendingUpIcon className=\"text-green-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u0631\u0627\u062c\u0639\u0627\u062a' : 'Deteriorations'}\n          items={changes.deteriorations}\n          icon={<TrendingDownIcon className=\"text-red-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? '\u062a\u063a\u064a\u064a\u0631\u0627\u062a \u0631\u0626\u064a\u0633\u064a\u0629' : 'Key Changes'}\n          items={changes.key_changes}\n          icon={<AlertCircleIcon className=\"text-blue-500\" />}\n        />\n      </div>\n    </div>\n  );\n}\n```",
+        "details": "Implement React/Next.js UI components:\n1. Report History Timeline component\n2. Version Comparison View with side-by-side layout\n3. Change Summary Dashboard\n4. Version selector dropdown\n5. Diff visualization with highlighting\n\nTypeScript/React implementation:\n```typescript\n// components/ReportHistory.tsx\nimport { useState, useEffect } from 'react';\nimport { Timeline, TimelineItem } from '@/components/ui/timeline';\nimport { formatDistanceToNow } from 'date-fns';\nimport { ar, enUS } from 'date-fns/locale';\n\ninterface ReportVersion {\n  id: number;\n  version_number: number;\n  created_at: string;\n  created_by: { name: string; avatar?: string };\n  change_summary: string;\n  metrics_summary: {\n    revenue_change: number;\n    earnings_change: number;\n    rating_change?: string;\n  };\n}\n\nexport function ReportHistory({ ticker }: { ticker: string }) {\n  const [versions, setVersions] = useState<ReportVersion[]>([]);\n  const [selectedVersions, setSelectedVersions] = useState<[number?, number?]>([]);\n  const { locale } = useLocale();\n  \n  useEffect(() => {\n    fetchReportVersions(ticker).then(setVersions);\n  }, [ticker]);\n  \n  const handleCompare = () => {\n    if (selectedVersions[0] && selectedVersions[1]) {\n      router.push(`/reports/compare?v1=${selectedVersions[0]}&v2=${selectedVersions[1]}`);\n    }\n  };\n  \n  return (\n    <div className=\"space-y-6\">\n      <div className=\"flex justify-between items-center\">\n        <h2 className=\"text-2xl font-bold\">\n          {locale === 'ar' ? 'تاريخ التقارير' : 'Report History'}\n        </h2>\n        <button\n          onClick={handleCompare}\n          disabled={selectedVersions.filter(Boolean).length !== 2}\n          className=\"btn-primary\"\n        >\n          {locale === 'ar' ? 'مقارنة النسخ' : 'Compare Versions'}\n        </button>\n      </div>\n      \n      <Timeline>\n        {versions.map((version) => (\n          <TimelineItem\n            key={version.id}\n            active={selectedVersions.includes(version.id)}\n            onClick={() => toggleVersionSelection(version.id)}\n          >\n            <div className=\"flex items-start justify-between\">\n              <div>\n                <h3 className=\"font-semibold\">\n                  {locale === 'ar' ? `النسخة ${version.version_number}` : `Version ${version.version_number}`}\n                </h3>\n                <p className=\"text-sm text-gray-600\">\n                  {formatDistanceToNow(new Date(version.created_at), {\n                    addSuffix: true,\n                    locale: locale === 'ar' ? ar : enUS\n                  })}\n                </p>\n                <p className=\"text-sm mt-1\">{version.change_summary}</p>\n              </div>\n              <MetricChangeBadges metrics={version.metrics_summary} />\n            </div>\n          </TimelineItem>\n        ))}\n      </Timeline>\n    </div>\n  );\n}\n\n// components/VersionComparison.tsx\nexport function VersionComparison({ v1Id, v2Id }: { v1Id: number; v2Id: number }) {\n  const [comparison, setComparison] = useState<ComparisonData>();\n  const [activeSection, setActiveSection] = useState('metrics');\n  \n  useEffect(() => {\n    fetchComparison(v1Id, v2Id).then(setComparison);\n  }, [v1Id, v2Id]);\n  \n  return (\n    <div className=\"grid grid-cols-2 gap-6\">\n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v1.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v1.metrics} \n          highlights={comparison?.changes.decreased}\n          highlightColor=\"red\"\n        />\n      </div>\n      \n      <div className=\"space-y-4\">\n        <h3>Version {comparison?.v2.version_number}</h3>\n        <MetricsTable \n          metrics={comparison?.v2.metrics}\n          highlights={comparison?.changes.increased} \n          highlightColor=\"green\"\n        />\n      </div>\n      \n      <div className=\"col-span-2\">\n        <ChangeSummaryPanel changes={comparison?.changes} />\n      </div>\n    </div>\n  );\n}\n\n// components/ChangeSummaryPanel.tsx\nexport function ChangeSummaryPanel({ changes }: { changes: ChangeData }) {\n  const { locale } = useLocale();\n  \n  return (\n    <div className=\"bg-gray-50 rounded-lg p-6\">\n      <h3 className=\"text-lg font-semibold mb-4\">\n        {locale === 'ar' ? 'ملخص التغييرات' : 'Change Summary'}\n      </h3>\n      \n      <div className=\"grid grid-cols-3 gap-4\">\n        <ChangeCard\n          title={locale === 'ar' ? 'تحسينات' : 'Improvements'}\n          items={changes.improvements}\n          icon={<TrendingUpIcon className=\"text-green-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? 'تراجعات' : 'Deteriorations'}\n          items={changes.deteriorations}\n          icon={<TrendingDownIcon className=\"text-red-500\" />}\n        />\n        <ChangeCard\n          title={locale === 'ar' ? 'تغييرات رئيسية' : 'Key Changes'}\n          items={changes.key_changes}\n          icon={<AlertCircleIcon className=\"text-blue-500\" />}\n        />\n      </div>\n    </div>\n  );\n}\n```",
         "testStrategy": "1. Test timeline rendering with multiple versions\n2. Verify version selection logic (max 2)\n3. Test comparison view data loading\n4. Validate diff highlighting accuracy\n5. Test responsive layout on mobile/tablet\n6. Verify Arabic RTL layout\n7. Test loading states and error handling\n8. Performance test with 50+ versions",
         "priority": "medium",
         "dependencies": [
@@ -618,7 +618,7 @@
         "id": "24",
         "title": "Build User Activity Tracking System",
         "description": "Implement event tracking that logs every user action (search, analyze, view report, export, add watchlist, view chart, set alert) to the user_activity Supabase table. Build admin-facing usage analytics with heatmaps, top tickers, and feature adoption metrics.",
-        "details": "Create data/activity_tracker.py with track_event(user_id, action_type, ticker, metadata) function. Instrument all key touchpoints in app.py: report generation, export downloads, watchlist modifications, chart views, alert rule creation. Metadata captures: page, duration, parameters used. Admin dashboard widgets: daily active users chart, top 10 tickers bar chart, feature adoption funnel (research \u2192 export \u2192 share), usage heatmap by hour/day.",
+        "details": "Create data/activity_tracker.py with track_event(user_id, action_type, ticker, metadata) function. Instrument all key touchpoints in app.py: report generation, export downloads, watchlist modifications, chart views, alert rule creation. Metadata captures: page, duration, parameters used. Admin dashboard widgets: daily active users chart, top 10 tickers bar chart, feature adoption funnel (research → export → share), usage heatmap by hour/day.",
         "testStrategy": "1. Test events logged for each action type\n2. Test event contains correct user_id and metadata\n3. Test admin dashboard displays aggregated stats\n4. Test filtering by date range and user\n5. Test performance impact (logging should be async/non-blocking)\n6. Test privacy: users cannot see others' activity",
         "priority": "medium",
         "dependencies": [
@@ -829,7 +829,7 @@
       },
       {
         "id": "41",
-        "title": "Global Button Audit \u2014 Remove Non-Clickable Buttons",
+        "title": "Global Button Audit — Remove Non-Clickable Buttons",
         "description": "Audit every button across all pages. Remove or fix any non-functional/decorative buttons.",
         "status": "pending",
         "priority": "medium",
@@ -852,16 +852,245 @@
         "details": "Check 'TAM Capital | CMA Regulated' and 'Confidential - Internal Use Only' text colors against light sidebar.",
         "testStrategy": "Footer text must be visible on the #FAFBFC sidebar background.",
         "subtasks": []
+      },
+      {
+        "id": "43",
+        "title": "Create RapidAPI Client Module",
+        "description": "Build data/rapidapi_client.py with base request functions for all 8 Saudi Exchange Stocks Tadawul endpoints, rate limiting (1 req/sec), retry logic, and error classification.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Endpoints: get-stock-prices-tadawul, get-daily-information-for-all-companies, today-top-5-losers, today-top-5-gainers, search-for-stocks, get-multiple-stock-prices, get-this-week-dividend, get-dividend-for-a-company. Auth via x-rapidapi-key and x-rapidapi-host headers. Base URL: saudi-exchange-stocks-tadawul.p.rapidapi.com.",
+        "testStrategy": "Test each endpoint wrapper. Verify rate limiting and error handling.",
+        "subtasks": []
+      },
+      {
+        "id": "44",
+        "title": "Create Argaam RSS News Parser",
+        "description": "Build data/news_feed.py with feedparser to fetch Argaam RSS, filter by company, return formatted news for Claude prompts.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "Feeds: argaam.com/en/rss, argaam.com/ar/rss. Cache 5 min. Functions: fetch_news_context(company_name).",
+        "testStrategy": "Test RSS parsing, keyword filtering for SABIC/Aramco.",
+        "subtasks": []
+      },
+      {
+        "id": "45",
+        "title": "Rewrite market_data.py with Multi-Source Architecture",
+        "description": "RapidAPI primary for prices/dividends, Argaam for news, yfinance fallback for financials.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "43",
+          "44"
+        ],
+        "details": "fetch_stock_data, fetch_price_history, fetch_market_overview, search_stock. Ticker mapping: 2010.SR <-> 2010. Never crash.",
+        "testStrategy": "Test with SABIC/Aramco. Verify fallback chain.",
+        "subtasks": []
+      },
+      {
+        "id": "46",
+        "title": "Update config.py and requirements.txt",
+        "description": "Add RAPIDAPI_KEY/HOST config. Remove TWELVE_DATA. Add feedparser, remove twelvedata.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "config.py: RAPIDAPI_KEY, RAPIDAPI_HOST. requirements.txt: +feedparser>=6.0, -twelvedata>=1.2.0.",
+        "testStrategy": "Verify config loads. Check requirements.",
+        "subtasks": []
+      },
+      {
+        "id": "47",
+        "title": "Update app.py Analysis Pipeline",
+        "description": "Include Argaam news in Claude prompts. Update error messages. Remove Twelve Data refs.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "45"
+        ],
+        "details": "run_full_analysis: add news context. _classify_api_error: handle RapidAPI errors.",
+        "testStrategy": "Test Analyze SABIC flow.",
+        "subtasks": []
+      },
+      {
+        "id": "48",
+        "title": "Update Market Overview and Compare Pages",
+        "description": "Use RapidAPI all-companies/gainers/losers for Overview. Batch prices for Compare.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "45"
+        ],
+        "details": "Market Overview: get-daily-information-for-all-companies + gainers/losers. Compare: get-multiple-stock-prices.",
+        "testStrategy": "Navigate pages, verify data loads.",
+        "subtasks": []
+      },
+      {
+        "id": "49",
+        "title": "Add RapidAPI Key to Streamlit Secrets",
+        "description": "User adds RAPIDAPI_KEY to Streamlit Cloud secrets. Verify on deployed site.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "46"
+        ],
+        "details": "Add RAPIDAPI_KEY to Streamlit Cloud > Settings > Secrets.",
+        "testStrategy": "Deploy and check logs.",
+        "subtasks": []
+      },
+      {
+        "id": "50",
+        "title": "End-to-End Testing",
+        "description": "Test full pipeline, overview, compare, fallback chain on live site.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "47",
+          "48",
+          "49"
+        ],
+        "details": "Test: Analyze SABIC, Overview, Compare, fallback with disabled key, check logs.",
+        "testStrategy": "All tests on tamresearcher.streamlit.app.",
+        "subtasks": []
+      },
+      {
+        "id": 51,
+        "title": "Implement Base Agent Class and Shared Infrastructure",
+        "description": "Create the foundational base agent class and shared scraping utilities that all specialized agents will inherit from and use.",
+        "details": "Create `data/agents/base_agent.py` with BaseAgent class containing common methods: fetch(), fetch_batch(), validate_output(), get_cached(), set_cached(). Implement `data/agents/scraper_utils.py` with request session management, user-agent rotation, rate limiting (token bucket), retry logic with exponential backoff, HTML parsing helpers for Arabic content, and file-based response caching. Use httpx for async HTTP requests and implement proper error handling.",
+        "testStrategy": "Unit tests for base agent methods, rate limiting functionality, cache operations, and retry logic. Mock HTTP responses to test error handling and fallback scenarios.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 52,
+        "title": "Develop Agent Orchestrator",
+        "description": "Build the central orchestrator that coordinates all agents with parallel execution for data agents and sequential execution for analysis agents.",
+        "details": "Create `data/agents/orchestrator.py` that manages agent lifecycle, implements parallel execution of data agents (Price, Fundamentals, News, Sentiment) using asyncio, handles sequential execution of Analyst -> Advisor agents, provides error handling with partial-data fallback, implements logging and performance metrics, and serves as the integration point for the Streamlit app. Include timeout handling where if one agent fails, others continue.",
+        "testStrategy": "Integration tests for agent coordination, parallel execution timing tests, error handling tests with simulated agent failures, and performance benchmarking for end-to-end execution under 60 seconds.",
+        "priority": "high",
+        "dependencies": [
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 53,
+        "title": "Implement Price Agent with Tadawul Scraping",
+        "description": "Create the Price Agent that scrapes real-time quotes and historical data from saudiexchange.sa with yfinance as fallback.",
+        "details": "Create `data/agents/price_agent.py` that scrapes saudiexchange.sa market watch table for real-time quotes and individual stock pages for historical OHLCV data. Implement yfinance fallback using .SR suffix (e.g., 2222.SR for Aramco). Use BeautifulSoup4 for HTML parsing, implement 1 request per 2 seconds throttling, cache real-time data for 5 minutes and historical for 24 hours, handle Arabic text in stock names, and output data in the specified schema with ticker, name, timestamp, OHLCV, volume, change_pct, and source fields.",
+        "testStrategy": "Test scraping against live Tadawul pages, validate data schema compliance, test rate limiting and caching mechanisms, test yfinance fallback functionality, and verify Arabic text handling.",
+        "priority": "high",
+        "dependencies": [
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 54,
+        "title": "Implement News Agent with RSS and Article Scraping",
+        "description": "Build the News Agent that aggregates market news from Argaam RSS feeds and Saudi Exchange announcements.",
+        "details": "Create `data/agents/news_agent.py` that parses Argaam RSS feeds using feedparser, scrapes argaam.com/en/articles for full article content, scrapes saudiexchange.sa announcements for company disclosures. Implement Claude integration for sentiment analysis and ticker extraction from news content. Include deduplication logic across sources, permanent caching for articles, and output schema with title, source, url, published_at, tickers_mentioned, category, summary, and sentiment_score fields.",
+        "testStrategy": "Test RSS feed parsing, article content extraction, Claude sentiment analysis accuracy, ticker mention extraction, deduplication logic, and validate output schema compliance.",
+        "priority": "medium",
+        "dependencies": [
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 55,
+        "title": "Implement Fundamentals Agent with Financial Data Scraping",
+        "description": "Create the Fundamentals Agent that scrapes company financial data, ratios, and profiles from Argaam with yfinance fallback.",
+        "details": "Create `data/agents/fundamentals_agent.py` that scrapes argaam.com company profile pages for revenue, net income, EPS, P/E, P/B, dividend yield, and financial statements. Parse both Arabic and English versions of Argaam pages, extract financial tables into structured data, normalize currency values to SAR, implement yfinance fallback for basic financials, cache data for 24 hours, and output schema with ticker, name, sector, market_cap, financial ratios, and detailed financials object.",
+        "testStrategy": "Test financial data extraction accuracy, currency normalization, Arabic/English page parsing, yfinance fallback functionality, cache behavior, and schema validation.",
+        "priority": "medium",
+        "dependencies": [
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 56,
+        "title": "Implement Sentiment Agent with Social Media Analysis",
+        "description": "Build the Sentiment Agent that analyzes community sentiment from Argaam forums and Twitter/X discussions about Saudi stocks.",
+        "details": "Create `data/agents/sentiment_agent.py` that scrapes Argaam community/forum pages for stock discussions, implements Twitter/X scraping for Arabic hashtags (#تاسي, #تداول, #السوق_السعودي), uses Claude for Arabic text sentiment analysis, aggregates sentiment over configurable time windows (1h, 24h, 7d), implements aggressive rate limiting for social platforms, and outputs schema with ticker, period, overall_sentiment, volume_mentions, top_themes, bullish/bearish/neutral percentages, and source breakdown.",
+        "testStrategy": "Test forum scraping, Twitter API integration or scraping, Arabic sentiment analysis accuracy with Claude, sentiment aggregation logic, rate limiting compliance, and output schema validation.",
+        "priority": "medium",
+        "dependencies": [
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 57,
+        "title": "Implement Analyst Agent for Data Fusion and Analysis",
+        "description": "Create the Analyst Agent that consumes data from all data agents and performs technical and fundamental analysis.",
+        "details": "Create `data/agents/analyst_agent.py` that orchestrates parallel data fetching from Price, Fundamentals, News, and Sentiment agents using asyncio. Implement technical analysis (moving averages, RSI, MACD, support/resistance), fundamental analysis (valuation metrics, peer comparison), news impact assessment, sentiment overlay with technical/fundamental signals, and sector analysis. Merge and cross-reference data from all sources, feed combined context to Claude for AI-powered analysis using existing prompts/ templates, and handle timeout scenarios with partial data processing.",
+        "testStrategy": "Test parallel data fetching, technical analysis calculations, fundamental analysis accuracy, data merging logic, Claude integration with existing prompts, timeout handling, and structured analysis output validation.",
+        "priority": "high",
+        "dependencies": [
+          53,
+          54,
+          55,
+          56
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 58,
+        "title": "Implement Advisor Agent for Investment Insights Generation",
+        "description": "Build the Advisor Agent that generates actionable investment insights, recommendations, and reports from analyzed data.",
+        "details": "Create `data/agents/advisor_agent.py` that generates stock recommendations (buy/hold/sell) with confidence scores, creates daily morning briefs combining all data sources, triggers alerts based on combined signals (price + sentiment + news), feeds structured insights to existing DOCX/PDF/PPTX generators, assesses portfolio impact for current watchlist. Use Claude to generate natural language insights from Analyst Agent output, integrate with existing generators/ for report output, integrate with existing data/alert_engine.py, and support both English and Arabic output.",
+        "testStrategy": "Test recommendation generation accuracy, morning brief content quality, alert triggering logic, integration with existing report generators, portfolio impact assessment, and bilingual output quality.",
+        "priority": "high",
+        "dependencies": [
+          57
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 59,
+        "title": "Integrate Agents with Existing Streamlit Application",
+        "description": "Modify the existing Streamlit app to use the new agent architecture and add agent status monitoring.",
+        "details": "Modify `app.py` to replace direct market_data.py calls with orchestrator, add 'Agent Status' panel showing which agents are active/cached/failed, add 'Community Sentiment' tab in stock analysis view. Refactor `data/market_data.py` to use Price Agent as primary source while keeping it as a compatibility layer. Update `config.py` to add scraping configuration (rate limits, cache TTLs, user agents) and agent-specific settings. Ensure graceful degradation when agents fail.",
+        "testStrategy": "Test Streamlit UI integration, agent status panel functionality, community sentiment tab display, compatibility layer operation, configuration management, and graceful degradation scenarios.",
+        "priority": "medium",
+        "dependencies": [
+          52,
+          58
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 60,
+        "title": "Add Dependencies and Finalize System Integration",
+        "description": "Install required dependencies and perform end-to-end system testing to ensure all components work together seamlessly.",
+        "details": "Add new dependencies to requirements: httpx (async HTTP client), beautifulsoup4 (HTML parsing), playwright (optional for JS-rendered pages), feedparser (RSS parsing), cachetools (in-memory caching). Perform comprehensive end-to-end testing from scraping to report generation, validate that existing report generators work with new agent data, ensure system meets success criteria of completing end-to-end processing in under 60 seconds, test graceful degradation scenarios, and verify all 6 agents produce valid output according to their schemas.",
+        "testStrategy": "End-to-end integration testing, performance testing for 60-second completion requirement, dependency compatibility testing, report generation validation with agent data, graceful degradation testing with simulated agent failures, and comprehensive schema validation across all agents.",
+        "priority": "medium",
+        "dependencies": [
+          59
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
-      "version": "1.0.0",
-      "lastModified": "2026-03-30T14:35:37.828Z",
-      "taskCount": 10,
-      "completedCount": 10,
-      "tags": [
-        "master"
-      ]
+      "created": "2026-04-05T14:43:45.996Z",
+      "updated": "2026-04-05T14:43:45.996Z",
+      "description": "Tasks for master context"
     }
   }
 }

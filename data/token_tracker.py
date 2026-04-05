@@ -80,6 +80,8 @@ def track_tokens(
     action: str = "research",
     ticker: str = "",
     metadata: dict = None,
+    agent_name: str = "",
+    cached: bool = False,
 ):
     """
     Record a token usage event.
@@ -109,6 +111,8 @@ def track_tokens(
         "estimated_cost_usd": round(estimated_cost, 6),
         "action": action,
         "ticker": ticker,
+        "agent_name": agent_name,
+        "cached": cached,
         "metadata": metadata or {},
         "timestamp": datetime.now().isoformat(),
     }
