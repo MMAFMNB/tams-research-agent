@@ -1,8 +1,8 @@
 """
-Price Agent — fetches stock prices from Tadawul website with yfinance fallback.
+Price Agent — fetches stock prices from Argaam API with yfinance fallback.
 
 Data sources (priority order):
-1. saudiexchange.sa — Official Tadawul market watch (web scraping)
+1. Argaam charts-stock-data API (no API key needed, returns OHLCV JSON)
 2. yfinance — Fallback using .SR suffix (e.g., 2222.SR)
 
 Output: OHLCV price data, current quote, change percentage.
@@ -16,9 +16,35 @@ from data.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
+# Tadawul ticker -> Argaam companyId mapping
+ARGAAM_COMPANY_IDS = {
+    "2222": 3509,  # Saudi Aramco
+    "2010": 77,    # SABIC
+    "1120": 43,    # Al Rajhi Bank
+    "7010": 30,    # STC
+    "1010": 47,    # Riyad Bank
+    "4030": 104,   # Bahri (National Shipping)
+    "2280": 62,    # Almarai
+    "2060": 72,    # National Industrialization (Tasnee)
+    "2020": 79,    # SABIC Agri-Nutrients
+    "1180": 44,    # Bank Albilad (placeholder — needs verification)
+    "2350": 80,    # Saudi Kayan (Sahara Petrochemicals area)
+    "1150": 44,    # Alinma Bank (placeholder)
+    "3060": 95,    # Jarir / United Electronics area
+    "4200": 75,    # Pharmaceutical area
+}
+
+ARGAAM_API_URL = "https://www.argaam.com/en//charts-stock-data"
+ARGAAM_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Referer": "https://www.argaam.com/en/company/companyoverview/",
+}
+
 
 class PriceAgent(BaseAgent):
-    """Fetches stock price data from Tadawul and yfinance."""
+    """Fetches stock price data from Argaam API and yfinance."""
 
     name = "price"
     cache_ttl = 300              # 5 minutes for real-time quotes
@@ -36,18 +62,87 @@ class PriceAgent(BaseAgent):
         Returns:
             Dict with price data or None on failure.
         """
-        # Try Tadawul scraping first
-        result = await self._fetch_from_tadawul(ticker)
+        # Try Argaam API first
+        result = await self._fetch_from_argaam(ticker)
         if result and self.validate_output(result):
             return result
 
         # Fallback to yfinance
-        logger.info(f"[price] Tadawul scrape failed for {ticker}, falling back to yfinance")
+        logger.info(f"[price] Argaam API failed for {ticker}, falling back to yfinance")
         result = self._fetch_from_yfinance(ticker)
         if result and self.validate_output(result):
             return result
 
         return None
+
+    async def _fetch_from_argaam(self, ticker: str) -> Optional[Dict]:
+        """Fetch price data from Argaam's charts-stock-data API."""
+        company_id = ARGAAM_COMPANY_IDS.get(str(ticker))
+        if not company_id:
+            logger.info(f"[price] No Argaam ID for ticker {ticker}")
+            return None
+
+        try:
+            import requests as req
+
+            resp = req.post(
+                ARGAAM_API_URL,
+                data={
+                    "stockDataConfigurationId": 6,
+                    "marketId": 3,
+                    "companyId": company_id,
+                    "GICSSectorId": 0,
+                    "period": "1D",
+                    "isBusinessFrame": "false",
+                },
+                headers=ARGAAM_HEADERS,
+                timeout=15,
+            )
+
+            if resp.status_code != 200:
+                logger.warning(f"[price] Argaam returned {resp.status_code} for {ticker}")
+                return None
+
+            data = resp.json()
+            candles = data.get("Data", [])
+            if not candles:
+                return None
+
+            # Latest candle
+            latest = candles[-1]
+            # First candle of the day for open
+            first = candles[0]
+
+            result = {
+                "ticker": ticker,
+                "name": latest.get("name", ""),
+                "source": "argaam_api",
+                "close": latest.get("close"),
+                "open": first.get("open"),
+                "high": max(c.get("high", 0) for c in candles),
+                "low": min(c.get("low", float("inf")) for c in candles if c.get("low", 0) > 0),
+                "volume": sum(c.get("volume", 0) for c in candles),
+                "argaam_company_id": company_id,
+                "data_points": len(candles),
+                "fetched_at": datetime.now().isoformat(),
+            }
+
+            # Previous close from config
+            config = data.get("Configurations", {})
+            prev_close = config.get("PreviousCloseValue")
+
+            # Calculate change percentage
+            if result["close"] and result["open"] and result["open"] > 0:
+                result["change_pct"] = round(
+                    (result["close"] - result["open"]) / result["open"] * 100, 2
+                )
+
+            logger.info(f"[price] Argaam: {ticker} = {result['close']} SAR ({len(candles)} candles)")
+            return result
+
+        except Exception as e:
+            logger.warning(f"[price] Argaam API error for {ticker}: {e}")
+            return None
 
     async def _fetch_from_tadawul(self, ticker: str) -> Optional[Dict]:
         """Scrape price data from saudiexchange.sa."""
